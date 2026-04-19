@@ -146,7 +146,20 @@ jobs:
           mkdir -p "$STAGE"
           V="${{ steps.ver.outputs.version }}"
 
-          cp build/app/outputs/flutter-apk/app-release.apk "$STAGE/thaipromptapp-${V}.apk"
+          # With `splits.abi` in build.gradle.kts the output filename gets
+          # the ABI suffix. We accept either name so a future config change
+          # back to a single fat APK still works.
+          if   [ -f build/app/outputs/flutter-apk/app-arm64-v8a-release.apk ]; then
+            SRC=build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+          elif [ -f build/app/outputs/flutter-apk/app-release.apk ]; then
+            SRC=build/app/outputs/flutter-apk/app-release.apk
+          else
+            echo "::error::no APK found in build/app/outputs/flutter-apk/"
+            ls -la build/app/outputs/flutter-apk/ || true
+            exit 1
+          fi
+          cp "$SRC" "$STAGE/thaipromptapp-${V}.apk"
+          echo "Source APK: $SRC ($(du -sh "$SRC" | cut -f1))"
 
           # Hash for transparency / integrity check
           (cd "$STAGE" && sha256sum *.apk > SHA256SUMS.txt)

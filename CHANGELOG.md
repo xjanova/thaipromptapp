@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-04-19
+
+### แก้ — APK ยังใหญ่อยู่หลัง v1.0.5 (350 MB) เพราะ filter ผิดที่
+- v1.0.5 ใส่ `defaultConfig.ndk.abiFilters = ["arm64-v8a"]` แต่ filter ตัวนี้ **กรองเฉพาะ NDK code ที่เรา compile เอง** ไม่ได้กรอง AAR native libs ของ third-party (flutter_gemma, sherpa_onnx, mobile_scanner ที่บวมจริง)
+- ผล: APK ยังคงรวม `.so` ของ `armeabi-v7a` + `x86_64` ไปด้วย ขนาดเลย 350 MB
+- v1.0.6 ย้ายไปใช้ `splits.abi { reset(); include("arm64-v8a"); isUniversalApk = false }` ซึ่งทำงานตอน packaging — กรอง AAR libs ทั้งหมด · คาดผล ~180 MB
+- workflow รับชื่อไฟล์ output ทั้งสองแบบ (`app-arm64-v8a-release.apk` ใหม่ + `app-release.apk` เดิม) เผื่อกลับไปใช้ fat APK ในอนาคต
+
+### หมายเหตุ
+- ขนาดจริงจะเห็นหลัง CI v1.0.6 build เสร็จ — ถ้ายังเกิน 200 MB ต้อง drill ลงไปที่ AAR ของ flutter_gemma เพิ่ม
+
 ## [1.0.5] - 2026-04-19
 
 ### เปลี่ยน — APK ขนาดเล็กลง ~50%
@@ -137,7 +148,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Riverpod 2 · go_router · dio + Sanctum interceptor · drift · sherpa-onnx
 - CI/CD: GitHub Actions สร้าง APK (universal + split-per-abi) + AAB ทุก tag `v*.*.*`
 
-[Unreleased]: https://github.com/xjanova/thaipromptapp/compare/v1.0.5...HEAD
+[Unreleased]: https://github.com/xjanova/thaipromptapp/compare/v1.0.6...HEAD
+[1.0.6]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.6
 [1.0.5]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.5
 [1.0.4]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.4
 [1.0.3]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.3

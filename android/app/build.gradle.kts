@@ -36,20 +36,29 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
-        // ───────── ABI filtering ─────────────────────────────────────────────
-        // We ship arm64-v8a ONLY. flutter_gemma's MediaPipe + sherpa_onnx +
-        // mobile_scanner each carry ~50–90 MB of native .so per ABI, so a
-        // universal APK with all three ABIs balloons to ~370 MB.
-        //
-        // Modern Android phones (minSdk 24 / Android 7.0+) are virtually all
-        // 64-bit ARM — armeabi-v7a phones are negligible in TH 2026 and
-        // x86_64 only exists on emulators. Dropping the other ABIs cuts
-        // ~170 MB off the APK and ~50% off CI build time.
-        //
-        // To re-add an ABI later (e.g. for a low-end TH market segment),
-        // append "armeabi-v7a" or "x86_64" to the list and rebuild.
-        ndk {
-            abiFilters += listOf("arm64-v8a")
+    }
+
+    // ───────── ABI filtering — done via `splits.abi`, not `ndk.abiFilters`
+    //
+    // `defaultConfig.ndk.abiFilters` only restricts NDK code that THIS
+    // module compiles. It does NOT filter AAR native libraries shipped by
+    // dependencies — and the bloat is exactly there: flutter_gemma's
+    // MediaPipe (~90 MB/ABI), sherpa_onnx (~40 MB/ABI), mobile_scanner
+    // (~10 MB/ABI), and just_audio's ExoPlayer all package .so for
+    // arm64-v8a + armeabi-v7a + x86_64 by default.
+    //
+    // `splits.abi` runs at packaging time and DOES filter dependency .so,
+    // so a single APK that contains only arm64 ABI emerges — ~180 MB
+    // instead of ~370 MB. minSdk = 24 (Android 7.0+) is effectively all
+    // 64-bit ARM in our market, so dropping the other ABIs is safe.
+    // To re-introduce an ABI later, add `include("armeabi-v7a")` or
+    // `include("x86_64")` to the block below.
+    splits {
+        abi {
+            isEnable = true
+            reset()                        // drop the default include list
+            include("arm64-v8a")
+            isUniversalApk = false         // don't produce a fat APK alongside
         }
     }
 
