@@ -85,12 +85,11 @@ jobs:
         run: flutter test
 
       # ------------------------------------------------------------------
-      # Signing — writes key.properties + keystore from secrets (if present).
-      # If the secret set is incomplete, we fall back to the debug keystore
-      # so PR builds keep working.
+      # Signing — writes keystore + key.properties from secrets.
+      # Step is always enqueued; script no-ops when secrets are missing so PR
+      # branches (without secret access) still build with the debug keystore.
       # ------------------------------------------------------------------
       - name: Configure release signing
-        if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -99,13 +98,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          if [[ -z "${ANDROID_KEYSTORE_BASE64:-}" ]]; then
+            echo "::notice::No release signing secrets — falling back to debug keystore."
+            exit 0
+          fi
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
-          cat > key.properties <<EOF
+          # gradle's rootProject inside android/ resolves to android/ → put
+          # key.properties next to settings.gradle.kts (i.e. android/key.properties).
+          cat > android/key.properties <<EOF
           storeFile=app/upload-keystore.jks
           storePassword=${ANDROID_KEYSTORE_PASSWORD}
           keyAlias=${ANDROID_KEY_ALIAS}
           keyPassword=${ANDROID_KEY_PASSWORD}
           EOF
+          echo "::notice::Release keystore provisioned."
 
       # ------------------------------------------------------------------
       # Build — APK split-per-abi for smaller downloads + a fat APK
