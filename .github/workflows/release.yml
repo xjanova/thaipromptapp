@@ -1,0 +1,244 @@
+name: Release · APK + AAB
+
+# Trigger on:
+#   - Tag push  v1.2.3         → create a GitHub Release with APK + AAB attached
+#   - Manual dispatch          → build without releasing (smoke test)
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: 'Attach artifacts to a GitHub Release?'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write  # required for softprops/action-gh-release
+
+env:
+  FLUTTER_VERSION: '3.38.5'
+  JAVA_VERSION: '17'
+
+jobs:
+  build:
+    name: Build Android
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ------------------------------------------------------------------
+      # Toolchain
+      # ------------------------------------------------------------------
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
+
+      - name: Set up Flutter ${{ env.FLUTTER_VERSION }}
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      # ------------------------------------------------------------------
+      # Derive version from tag (falls back to pubspec for manual dispatch)
+      # ------------------------------------------------------------------
+      - name: Resolve version
+        id: ver
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
+            TAG_NAME="${GITHUB_REF_NAME}"
+            VER_NAME="${TAG_NAME#v}"
+          else
+            VER_NAME=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)
+            TAG_NAME="v${VER_NAME}"
+          fi
+          # Build number: monotonic, based on GitHub run number so builds are ordered.
+          BUILD_NUMBER="${GITHUB_RUN_NUMBER}"
+          echo "version=${VER_NAME}" >> "$GITHUB_OUTPUT"
+          echo "build=${BUILD_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG_NAME}" >> "$GITHUB_OUTPUT"
+          echo "Resolved version=${VER_NAME} build=${BUILD_NUMBER} tag=${TAG_NAME}"
+
+      # ------------------------------------------------------------------
+      # Dependencies
+      # ------------------------------------------------------------------
+      - name: flutter pub get
+        run: flutter pub get
+
+      - name: flutter analyze
+        run: flutter analyze --no-fatal-infos
+
+      - name: flutter test
+        run: flutter test
+
+      # ------------------------------------------------------------------
+      # Signing — writes key.properties + keystore from secrets (if present).
+      # If the secret set is incomplete, we fall back to the debug keystore
+      # so PR builds keep working.
+      # ------------------------------------------------------------------
+      - name: Configure release signing
+        if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
+          cat > key.properties <<EOF
+          storeFile=app/upload-keystore.jks
+          storePassword=${ANDROID_KEYSTORE_PASSWORD}
+          keyAlias=${ANDROID_KEY_ALIAS}
+          keyPassword=${ANDROID_KEY_PASSWORD}
+          EOF
+
+      # ------------------------------------------------------------------
+      # Build — APK split-per-abi for smaller downloads + a fat APK
+      # for direct sideload (most permissive).
+      # ------------------------------------------------------------------
+      - name: Build APK (split-per-abi)
+        run: |
+          flutter build apk --release \
+            --build-name=${{ steps.ver.outputs.version }} \
+            --build-number=${{ steps.ver.outputs.build }} \
+            --split-per-abi \
+            --obfuscate --split-debug-info=build/symbols
+
+      - name: Build APK (universal)
+        run: |
+          flutter build apk --release \
+            --build-name=${{ steps.ver.outputs.version }} \
+            --build-number=${{ steps.ver.outputs.build }} \
+            --obfuscate --split-debug-info=build/symbols
+
+      - name: Build AAB
+        run: |
+          flutter build appbundle --release \
+            --build-name=${{ steps.ver.outputs.version }} \
+            --build-number=${{ steps.ver.outputs.build }} \
+            --obfuscate --split-debug-info=build/symbols
+
+      # ------------------------------------------------------------------
+      # Stage renamed artifacts for the release assets
+      # ------------------------------------------------------------------
+      - name: Stage artifacts
+        id: stage
+        shell: bash
+        run: |
+          set -euo pipefail
+          STAGE=build/release
+          mkdir -p "$STAGE"
+          V="${{ steps.ver.outputs.version }}"
+
+          cp build/app/outputs/flutter-apk/app-release.apk "$STAGE/thaipromptapp-${V}-universal.apk"
+          # split-per-abi variants
+          for abi in armeabi-v7a arm64-v8a x86_64; do
+            src="build/app/outputs/flutter-apk/app-${abi}-release.apk"
+            [ -f "$src" ] && cp "$src" "$STAGE/thaipromptapp-${V}-${abi}.apk"
+          done
+          cp build/app/outputs/bundle/release/app-release.aab "$STAGE/thaipromptapp-${V}.aab"
+
+          # Hashes for transparency / integrity check
+          (cd "$STAGE" && sha256sum *.apk *.aab > SHA256SUMS.txt)
+
+          echo "stage=$STAGE" >> "$GITHUB_OUTPUT"
+          ls -la "$STAGE"
+
+      - name: Upload artifacts (CI retention)
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-${{ steps.ver.outputs.version }}
+          path: |
+            ${{ steps.stage.outputs.stage }}/*.apk
+            ${{ steps.stage.outputs.stage }}/*.aab
+            ${{ steps.stage.outputs.stage }}/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload debug symbols
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-symbols-${{ steps.ver.outputs.version }}
+          path: build/symbols
+          retention-days: 30
+
+      # ------------------------------------------------------------------
+      # Publish GitHub Release (tag push OR manual dispatch w/ publish=true)
+      # ------------------------------------------------------------------
+      - name: Extract release notes from CHANGELOG
+        if: ${{ github.ref_type == 'tag' || inputs.publish_release == true }}
+        id: notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          V="${{ steps.ver.outputs.version }}"
+          if [[ -f CHANGELOG.md ]]; then
+            awk -v ver="$V" '
+              BEGIN { found = 0 }
+              /^## / {
+                if (found) exit
+                if ($0 ~ "\\[" ver "\\]") { found = 1; next }
+              }
+              found { print }
+            ' CHANGELOG.md > build/release-notes.md || true
+          fi
+          if [[ ! -s build/release-notes.md ]]; then
+            echo "_Release ${V}_" > build/release-notes.md
+          fi
+
+      - name: Publish release
+        if: ${{ github.ref_type == 'tag' || inputs.publish_release == true }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: Thaiprompt ${{ steps.ver.outputs.version }}
+          body_path: build/release-notes.md
+          draft: false
+          prerelease: ${{ contains(steps.ver.outputs.version, '-') }}
+          files: |
+            ${{ steps.stage.outputs.stage }}/*.apk
+            ${{ steps.stage.outputs.stage }}/*.aab
+            ${{ steps.stage.outputs.stage }}/SHA256SUMS.txt
+
+      # ------------------------------------------------------------------
+      # Notify backend so in-app auto-update picks up the new release.
+      # The webhook uses a shared-secret HMAC; configure BACKEND_RELEASE_URL
+      # + BACKEND_RELEASE_SECRET as repo secrets.
+      # ------------------------------------------------------------------
+      - name: Notify backend (optional)
+        if: ${{ github.ref_type == 'tag' && env.BACKEND_RELEASE_URL != '' }}
+        env:
+          BACKEND_RELEASE_URL: ${{ secrets.BACKEND_RELEASE_URL }}
+          BACKEND_RELEASE_SECRET: ${{ secrets.BACKEND_RELEASE_SECRET }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          V="${{ steps.ver.outputs.version }}"
+          TAG="${{ steps.ver.outputs.tag }}"
+          APK_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/thaipromptapp-${V}-universal.apk"
+          PAYLOAD=$(jq -nc \
+            --arg version "$V" \
+            --arg tag "$TAG" \
+            --arg apk_url "$APK_URL" \
+            --arg sha_file "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/SHA256SUMS.txt" \
+            '{version:$version,tag:$tag,apk_url:$apk_url,sha256_url:$sha_file,platform:"android",channel:"stable"}')
+          SIG=$(printf '%s' "$PAYLOAD" | openssl dgst -sha256 -hmac "$BACKEND_RELEASE_SECRET" -hex | awk '{print $2}')
+          curl -fsSL -X POST "$BACKEND_RELEASE_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-Release-Signature: sha256=${SIG}" \
+            --data "$PAYLOAD"

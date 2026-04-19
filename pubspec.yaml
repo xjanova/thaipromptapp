@@ -77,6 +77,12 @@ dependencies:
   logger: ^2.5.0
   equatable: ^2.0.7
   uuid: ^4.5.1
+  crypto: ^3.0.6
+
+  # Auto-update — open downloaded APK via FileProvider
+  open_filex: ^4.5.0
+  url_launcher: ^6.3.1
+  flutter_markdown: ^0.7.5
 
 dev_dependencies:
   flutter_test:

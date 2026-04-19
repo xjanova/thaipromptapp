@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/auth/auth_state.dart';
 import '../core/theme/clay_theme.dart';
+import '../core/update/update_observer.dart';
 import 'router.dart';
 
 class ThaipromptApp extends ConsumerWidget {
@@ -29,6 +30,7 @@ class ThaipromptApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      builder: (context, child) => UpdateObserver(child: child ?? const SizedBox.shrink()),
     );
   }
 }

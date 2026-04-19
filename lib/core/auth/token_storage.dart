@@ -40,11 +40,19 @@ class TokenStorage {
       _storage.write(key: _kPinHash, value: hash);
   Future<void> deletePinHash() => _storage.delete(key: _kPinHash);
 
+  /// Arbitrary read/write for auxiliary secrets (e.g. PIN salt).
+  /// Keys MUST use the `tp.*` namespace; callers are responsible for picking
+  /// non-colliding keys.
+  Future<String?> readPinHashSalt(String key) => _storage.read(key: key);
+  Future<void> writePinHashSalt(String key, String value) =>
+      _storage.write(key: key, value: value);
+
   Future<void> clearAll() async {
     await Future.wait([
       deleteToken(),
       _storage.delete(key: _kRefresh),
       deletePinHash(),
+      _storage.delete(key: 'tp.wallet.pin_salt'),
     ]);
   }
 }

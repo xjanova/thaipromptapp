@@ -15,6 +15,7 @@ import '../../shared/widgets/nav_dock.dart';
 import '../../shared/widgets/puff.dart';
 import '../../shared/widgets/puffy_button.dart';
 import '../../shared/widgets/section_header.dart';
+import '../../shared/widgets/version_badge.dart';
 
 /// Port of `Home` in screens-a.jsx.
 class HomePage extends ConsumerWidget {
@@ -128,7 +129,13 @@ class _TopBar extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('BANGKOK · CHATUCHAK', style: TpText.monoLabel),
+                Row(
+                  children: [
+                    Text('BANGKOK · CHATUCHAK', style: TpText.monoLabel),
+                    const SizedBox(width: 6),
+                    const VersionBadge(),
+                  ],
+                ),
                 Text('สวัสดี, $userName 👋', style: TpText.greet),
               ],
             ),

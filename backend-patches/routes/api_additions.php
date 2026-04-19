@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\V1\AiChatApiController;
 use App\Http\Controllers\Api\V1\AnalyticsApiController;
 use App\Http\Controllers\Api\V1\AppConfigApiController;
 use App\Http\Controllers\Api\V1\AppMenuApiController;
+use App\Http\Controllers\Api\V1\AppReleaseApiController;
 use Illuminate\Support\Facades\Route;
 
 // ---------------------------------------------------------------------------
@@ -21,11 +22,12 @@ use Illuminate\Support\Facades\Route;
 // ---------------------------------------------------------------------------
 
 Route::prefix('app')->name('api.v1.app.')->group(function () {
-    Route::get('/config',     [AppConfigApiController::class, 'config'])->name('config');
-    Route::get('/flags',      [AppConfigApiController::class, 'flags'])->name('flags');
-    Route::get('/menus',      [AppMenuApiController::class, 'menus'])->name('menus');
-    Route::get('/sliders',    [AppMenuApiController::class, 'sliders'])->name('sliders');
-    Route::get('/promotions', [AppMenuApiController::class, 'promotions'])->name('promotions');
+    Route::get('/config',         [AppConfigApiController::class, 'config'])->name('config');
+    Route::get('/flags',          [AppConfigApiController::class, 'flags'])->name('flags');
+    Route::get('/menus',          [AppMenuApiController::class, 'menus'])->name('menus');
+    Route::get('/sliders',        [AppMenuApiController::class, 'sliders'])->name('sliders');
+    Route::get('/promotions',     [AppMenuApiController::class, 'promotions'])->name('promotions');
+    Route::get('/latest-version', [AppReleaseApiController::class, 'latest'])->name('latest-version');
 });
 
 // ---------------------------------------------------------------------------

@@ -66,6 +66,7 @@ class Api {
   static const appSliders = '/v1/app/sliders';
   static const appPromotions = '/v1/app/promotions';
   static const appBanners = '/v1/app/banners';
+  static const appLatestVersion = '/v1/app/latest-version';
 
   // Analytics (to add)
   static const eventsBatch = '/v1/events/batch';

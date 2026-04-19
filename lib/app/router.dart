@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/auth/auth_state.dart';
+import '../features/affiliate/affiliate_page.dart';
 import '../features/auth/login_page.dart';
 import '../features/auth/register_page.dart';
 import '../features/cart/cart_page.dart';
@@ -13,6 +14,10 @@ import '../features/product/product_page.dart';
 import '../features/shop/shop_page.dart';
 import '../features/splash/splash_page.dart';
 import '../features/tracking/tracking_page.dart';
+import '../features/wallet/qr_scan_page.dart';
+import '../features/wallet/topup_page.dart';
+import '../features/wallet/transfer_page.dart';
+import '../features/wallet/wallet_page.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -37,7 +42,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         return isAuthRoute ? null : '/onboarding';
       }
 
-      // Authenticated
       if (here == '/splash' || isAuthRoute) return '/home';
       return null;
     },
@@ -71,6 +75,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
+
+      // Money
+      GoRoute(path: '/wallet', builder: (_, __) => const WalletPage()),
+      GoRoute(path: '/wallet/topup', builder: (_, __) => const TopupPage()),
+      GoRoute(path: '/wallet/transfer', builder: (_, __) => const TransferPage()),
+      GoRoute(path: '/wallet/scan', builder: (_, __) => const QrScanPage()),
+      GoRoute(path: '/wallet/withdraw', builder: (_, __) => const TopupPage()), // stub
+      GoRoute(path: '/affiliate', builder: (_, __) => const AffiliatePage()),
     ],
     errorBuilder: (_, state) => Scaffold(
       body: Center(child: Text('ไม่พบเส้นทาง: ${state.uri}')),
