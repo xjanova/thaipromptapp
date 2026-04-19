@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-04-19
+
+### เพิ่ม — ตลาดสดไทยพร๊อม (Fresh Market)
+- **เปิด "ตลาดสด" ในแอพ** · เชื่อมตรงกับ backend `/api/v1/fresh-market/*` (มาจาก `App\Http\Controllers\Api\V1\FreshMarketApiController`)
+- **5 หน้าจอใหม่**:
+  - `TaladsodHomePage` (`/taladsod`) · hero leaf-green + categories strip + grid สินค้าใหม่ล่าสุด
+  - `TaladsodListingsPage` (`/taladsod/listings`) · ค้นหา (debounce 350ms) + filter (sort: ใหม่/ราคาต่ำ/ราคาสูง/ขายดี · ออร์แกนิก) + infinite scroll pagination + filter chip ลบ category ได้
+  - `TaladsodListingDetailPage` (`/taladsod/listings/:id`) · image carousel + chips (ออร์แกนิก/ความสด/ระยะทาง/cashback) + seller card + รายละเอียด + related listings strip + sticky bottom CTA
+  - `TaladsodSellerPage` (`/taladsod/sellers/:id`) · profile header (ชื่อร้าน/rating/รีวิว/verified) + grid สินค้าในร้าน
+  - `TaladsodMyOrdersPage` (`/taladsod/orders`) · ประวัติออเดอร์พร้อม status pill + cashback + refresh
+- **`OrderSheet`** modal · qty stepper · 3 delivery types (รับเอง/ไรเดอร์/ขนส่ง) · 4 payment methods (Wallet/COD/โอน/Escrow) · ที่อยู่จัดส่ง · subtotal สด · POST `/v1/fresh-market/orders` พร้อม error inline
+- **Entry point** ที่ HomePage หลัก (`/home`) · hero card "ตลาดสดไทยพร๊อม 🥬" สีเขียวคลายมอร์ฟ tap แล้วไป `/taladsod`
+- **`ListingCard`** widget reusable · ใช้ทั้งใน home grid, listings list, seller listings, related strip · แสดง organic + discount + distance + stock + shop name
+
+### ภายใน
+- `lib/shared/models/fresh_market.dart` — 8 hand-written models (TmCategory, TmSellerMini, TmSeller, TmListing, TmListingDetail, TmRelatedListing, TmPaginatedListings, TmOrderSummary, TmOrderListItem) + 2 enums (TmDeliveryType, TmPaymentMethod) + status label mapper
+- `lib/features/fresh_market/fresh_market_repository.dart` — buyer-side endpoints wrapped (categories, listings paginated, nearby, listingDetail, seller, placeOrder, myOrders) · 2 default Riverpod providers (`fmCategoriesProvider`, `fmRecentListingsProvider`)
+- `lib/core/utils/format.dart` (ใหม่) — `formatBaht(value, decimals: ...)` + `formatDistance(km)` shared helpers
+- `lib/core/api/endpoints.dart` — เพิ่ม 7 fresh-market endpoint constants (`fmCategories`, `fmListings`, `fmListing(id)`, `fmNearby`, `fmSeller(id)`, `fmOrders`, `fmOrder(id)`)
+- `lib/app/router.dart` — เพิ่ม 5 routes สำหรับ taladsod (รวม query parameter `?category=ID`)
+
+### Backend
+- รัน `php artisan db:seed --class=FreshMarketSeeder --force` บน production แล้ว · มีข้อมูลตัวอย่างให้แอพแสดง
+
+### หมายเหตุ
+- Phase นี้ครอบคลุม **buyer-side** เท่านั้น · seller dashboard + rider GPS ยังไม่อยู่ในแอพ (ใช้ผ่าน LINE bot ตามเดิม) · จะมาในรอบหน้า
+- ออเดอร์ที่สำเร็จจะ navigate ไปหน้า "ออเดอร์ตลาดสด" ของ user · ยังไม่มี order detail screen แยก (พอข้อมูลพร้อมแล้วค่อยทำ)
+
 ## [1.0.3] - 2026-04-19
 
 ### เพิ่ม — เชื่อมต่อ production backend
@@ -89,7 +117,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Riverpod 2 · go_router · dio + Sanctum interceptor · drift · sherpa-onnx
 - CI/CD: GitHub Actions สร้าง APK (universal + split-per-abi) + AAB ทุก tag `v*.*.*`
 
-[Unreleased]: https://github.com/xjanova/thaipromptapp/compare/v1.0.3...HEAD
+[Unreleased]: https://github.com/xjanova/thaipromptapp/compare/v1.0.4...HEAD
+[1.0.4]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.4
 [1.0.3]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.3
 [1.0.2]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.2
 [1.0.1]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.1

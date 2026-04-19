@@ -80,4 +80,13 @@ class Api {
   static const provinces = '/thai-addresses/provinces';
   static String districts(dynamic provinceCode) =>
       '/thai-addresses/districts/$provinceCode';
+
+  // Fresh Market (ตลาดสด) — buyer surface
+  static const fmCategories = '/v1/fresh-market/categories';
+  static const fmListings = '/v1/fresh-market/listings';
+  static String fmListing(dynamic id) => '/v1/fresh-market/listings/$id';
+  static const fmNearby = '/v1/fresh-market/nearby';
+  static String fmSeller(dynamic id) => '/v1/fresh-market/sellers/$id';
+  static const fmOrders = '/v1/fresh-market/orders';
+  static String fmOrder(dynamic id) => '/v1/fresh-market/orders/$id';
 }

@@ -8,6 +8,11 @@ import '../features/auth/login_page.dart';
 import '../features/auth/register_page.dart';
 import '../features/cart/cart_page.dart';
 import '../features/chat/chat_page.dart';
+import '../features/fresh_market/listing_detail_page.dart';
+import '../features/fresh_market/listings_page.dart';
+import '../features/fresh_market/my_orders_page.dart';
+import '../features/fresh_market/seller_page.dart';
+import '../features/fresh_market/taladsod_home_page.dart';
 import '../features/home/home_page.dart';
 import '../features/nong_ying/install_model_page.dart';
 import '../features/nong_ying/nong_ying_fab.dart';
@@ -96,6 +101,32 @@ final routerProvider = Provider<GoRouter>((ref) {
       // AI น้องหญิง
       GoRoute(path: '/nong-ying', builder: (_, __) => const NongYingRouteBridge()),
       GoRoute(path: '/nong-ying/install', builder: (_, __) => const InstallModelPage()),
+
+      // ตลาดสด (Fresh Market)
+      GoRoute(path: '/taladsod', builder: (_, __) => const TaladsodHomePage()),
+      GoRoute(
+        path: '/taladsod/listings',
+        builder: (_, state) {
+          final cat = state.uri.queryParameters['category'];
+          return TaladsodListingsPage(
+            initialCategoryId: cat == null ? null : int.tryParse(cat),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/taladsod/listings/:id',
+        builder: (_, state) =>
+            TaladsodListingDetailPage(id: int.parse(state.pathParameters['id']!)),
+      ),
+      GoRoute(
+        path: '/taladsod/sellers/:id',
+        builder: (_, state) =>
+            TaladsodSellerPage(id: int.parse(state.pathParameters['id']!)),
+      ),
+      GoRoute(
+        path: '/taladsod/orders',
+        builder: (_, __) => const TaladsodMyOrdersPage(),
+      ),
 
       // Settings
       GoRoute(path: '/settings', builder: (_, __) => const SettingsPage()),

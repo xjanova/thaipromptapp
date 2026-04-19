@@ -43,6 +43,8 @@ class HomePage extends ConsumerWidget {
                 const _TodayHero(),
                 const SizedBox(height: 10),
                 const _WalletAffiliateRow(),
+                const SizedBox(height: 12),
+                const _TaladsodCard(),
                 const SectionHeader(
                   titleTh: 'หมวดหมู่',
                   titleEn: 'Categories',
@@ -686,6 +688,89 @@ class _FeaturedShop extends StatelessWidget {
               onPressed: () => context.go('/shop/1'),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Hero entry point on the main HomePage that opens the Fresh Market
+/// (ตลาดสด) experience. Tapping anywhere on the card jumps to `/taladsod`.
+class _TaladsodCard extends StatelessWidget {
+  const _TaladsodCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: GestureDetector(
+        onTap: () => context.push('/taladsod'),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(18, 16, 16, 16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [TpColors.leaf, Color(0xFF9CD66A)],
+            ),
+            borderRadius: BorderRadius.circular(TpRadii.chunk),
+            boxShadow: TpShadows.clay,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text('🥬', style: TextStyle(fontSize: 20)),
+                        const SizedBox(width: 6),
+                        Text(
+                          'ตลาดสดไทยพร๊อม',
+                          style: TpText.titleLg.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'ผัก · ผลไม้ · เนื้อสัตว์ ส่งตรงจากแม่ค้าในย่าน',
+                      style: TpText.bodyXs.copyWith(
+                        color: Colors.white.withValues(alpha: 0.92),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(TpRadii.button),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('เข้าตลาด',
+                              style: TpText.bodySm.copyWith(
+                                color: TpColors.leaf,
+                                fontWeight: FontWeight.w800,
+                              )),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.arrow_forward_rounded,
+                              size: 16, color: TpColors.leaf),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Blob3D(size: 64, hue: BlobHue.leaf),
+            ],
+          ),
         ),
       ),
     );
