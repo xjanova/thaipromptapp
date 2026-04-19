@@ -6,6 +6,7 @@ import '../core/analytics/analytics_bootstrap.dart';
 import '../core/auth/auth_state.dart';
 import '../core/theme/clay_theme.dart';
 import '../core/update/update_observer.dart';
+import '../features/splash/splash_gate.dart';
 import 'router.dart';
 
 class ThaipromptApp extends ConsumerWidget {
@@ -13,8 +14,11 @@ class ThaipromptApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Listen for auth state changes so router redirect picks them up.
+    // Listen for auth + splash-gate changes so router redirect picks them up.
     ref.listen(authControllerProvider, (_, __) {
+      ref.read(routerProvider).refresh();
+    });
+    ref.listen(splashGateProvider, (_, __) {
       ref.read(routerProvider).refresh();
     });
 

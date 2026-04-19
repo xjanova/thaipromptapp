@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-04-19
+
+### เพิ่ม — แบรนดิ้ง + อัตลักษณ์แอพ
+- **ไอคอนแอพใหม่** · ใช้โลโก้ `logoapp.png` (ตะกร้าทอง + ดอกบัว + ลายไทย พื้น navy) เป็น launcher icon บน Android (mipmap ทุกความหนาแน่น) และ iOS (`AppIcon.appiconset` ครบทุกขนาด)
+- **Adaptive icon** สำหรับ Android 8+ (mipmap-anydpi-v26) · พื้น `#0E2A4F` + foreground เฉพาะตัวโลโก้ ไม่บีบ ไม่ครอป
+- **Native splash screen** สำหรับ Android 12+ (`values-v31/styles.xml`) และ Android เก่า (`drawable/launch_background.xml`) + iOS (`LaunchImage.imageset`) · พื้นสีเดียวกับโลโก้ (navy `#0E2A4F`)
+- **Animated splash** ก่อนเข้าแอพ · โลโก้ซูม + เด้ง + กลิทเตอร์ทอง + วงแหวนทองพัลส์ + sheen sweep + ไตเติ้ล "ThaiPromptAPP" gradient ทอง + dot loader
+- **เสียงเปิดแอพ 16-bit chiptune** · arpeggio C5→E5→G5→C6 พร้อม shimmer tail (square + triangle wave) สังเคราะห์เป็น WAV mono 44.1kHz · ความยาว ~1 วินาที · เล่นพร้อม haptic light impact
+
+### ภายใน
+- เพิ่ม `flutter_launcher_icons ^0.14.4` + `flutter_native_splash ^2.4.6` ใน dev_dependencies (regenerate ด้วย `dart run flutter_launcher_icons` + `dart run flutter_native_splash:create`)
+- เพิ่ม `splashGateProvider` (StateProvider<bool>) · ปิดทางให้ router redirect ขณะ animation ยังเล่นอยู่ · เปิดเองเมื่อ animation จบ (~2.3s)
+- ย้าย `logoapp.png` → `assets/images/logoapp.png` + เพิ่ม `assets/sfx/startup_16bit.wav`
+- README.md เขียนใหม่ทั้งฉบับ · มีไอคอนเด่น · บัตจ shields.io · TOC · architecture · feature matrix · screenshots placeholder
+
+### หมายเหตุ
+- เสียงเปิดแอพเล่นแค่ตอน cold start (ครั้งแรกของ process) · ไม่เล่นซ้ำเมื่อ background→foreground
+- ถ้าอุปกรณ์ปิดเสียง / silent mode · จะข้าม `play()` แบบเงียบ · ไม่ blocking boot
+
 ## [1.0.1] - 2026-04-19
 
 ### เพิ่ม — น้องหญิง AI + เสียง
@@ -52,6 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Riverpod 2 · go_router · dio + Sanctum interceptor · drift · sherpa-onnx
 - CI/CD: GitHub Actions สร้าง APK (universal + split-per-abi) + AAB ทุก tag `v*.*.*`
 
-[Unreleased]: https://github.com/xjanova/thaipromptapp/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/xjanova/thaipromptapp/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.2
 [1.0.1]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.1
 [1.0.0]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.0

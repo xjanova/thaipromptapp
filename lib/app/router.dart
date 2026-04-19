@@ -15,6 +15,7 @@ import '../features/onboarding/onboarding_page.dart';
 import '../features/product/product_page.dart';
 import '../features/settings/settings_page.dart';
 import '../features/shop/shop_page.dart';
+import '../features/splash/splash_gate.dart';
 import '../features/splash/splash_page.dart';
 import '../features/tracking/tracking_page.dart';
 import '../features/wallet/qr_scan_page.dart';
@@ -28,7 +29,12 @@ final routerProvider = Provider<GoRouter>((ref) {
     debugLogDiagnostics: false,
     redirect: (context, state) {
       final auth = ref.read(authControllerProvider);
+      final splashDone = ref.read(splashGateProvider);
       final here = state.matchedLocation;
+
+      // Cold-start: keep user on /splash until the animated intro finishes,
+      // even if auth resolves first. Splash flips the gate when its anim ends.
+      if (!splashDone && here == '/splash') return null;
 
       if (auth is AuthUnknown) {
         return here == '/splash' ? null : '/splash';
