@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-04-19
+
+### เพิ่ม — เชื่อมต่อ production backend
+- **API base URL** ชี้ไป `https://thaiprompt.online/api` (production) แทน `staging.thaiprompt.app` (โดเมนเก่าไม่มีจริง)
+- Dio follows redirect อัตโนมัติ → `main.thaiprompt.online` (canonical)
+- ยังคง override ได้ผ่าน `--dart-define=API_BASE_URL=...` สำหรับ dev/staging builds
+
+### ภายใน — backend handshake
+- Backend PR [#2534](https://github.com/xjanova/Thaiprompt-Affiliate/pull/2534) merged แล้ว · เปิดให้ใช้ endpoints:
+  - `GET /v1/app/config` (ETag cached) · `GET /v1/app/flags` · `GET /v1/app/menus` · `/sliders` · `/promotions` · `/latest-version`
+  - `POST /v1/events/batch` (auth · 60/min) · `POST /v1/ai/chat` (auth · 20/min) · `POST /v1/ai/tts` (auth · 20/min)
+- ก่อนหน้านี้ทั้งหมด 404 → ตอนนี้ live (deploy auto-triggered จากการ merge)
+
+### หมายเหตุ
+- Cloudflare Page Rule เก่าทำ 301 จาก `thaiprompt.online` ไป `main.thaiprompt.online` แต่หาย `/` (`http://main.thaiprompt.onlineapi/...`)
+- แก้ใน CF dashboard 1 บรรทัด (เปลี่ยน destination จาก `http://main.thaiprompt.online$1` → `https://main.thaiprompt.online/$1`) ดูคู่มือเต็มที่ [`Thaiprompt-Affiliate/HANDOVER.md`](https://github.com/xjanova/Thaiprompt-Affiliate/blob/claude/Main/HANDOVER.md)
+- Backend repo มี defensive `RewriteRule` ใน `public/.htaccess` เป็น safety net เผื่อ CF rule ถูก remove
+
 ## [1.0.2] - 2026-04-19
 
 ### เพิ่ม — แบรนดิ้ง + อัตลักษณ์แอพ
@@ -71,7 +89,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Riverpod 2 · go_router · dio + Sanctum interceptor · drift · sherpa-onnx
 - CI/CD: GitHub Actions สร้าง APK (universal + split-per-abi) + AAB ทุก tag `v*.*.*`
 
-[Unreleased]: https://github.com/xjanova/thaipromptapp/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/xjanova/thaipromptapp/compare/v1.0.3...HEAD
+[1.0.3]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.3
 [1.0.2]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.2
 [1.0.1]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.1
 [1.0.0]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.0

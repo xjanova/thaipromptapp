@@ -139,10 +139,15 @@ class ApiClient {
 // ---------------------------------------------------------------------------
 
 /// Inject the compile-time API base URL via `--dart-define=API_BASE_URL=…`.
-/// Falls back to the staging host.
+///
+/// Default points at the production brand domain `thaiprompt.online`. The
+/// host transparently 301s to the canonical `main.thaiprompt.online` (Dio
+/// follows redirects automatically). For local/dev builds against a non-prod
+/// backend, override via `--dart-define=API_BASE_URL=https://main.thaiprompt.online/api`
+/// or your tunnel URL.
 const _fallbackBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'https://staging.thaiprompt.app/api',
+  defaultValue: 'https://thaiprompt.online/api',
 );
 
 final apiBaseUrlProvider = Provider<String>((_) => _fallbackBaseUrl);
