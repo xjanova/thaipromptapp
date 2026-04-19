@@ -103,10 +103,10 @@ jobs:
             exit 0
           fi
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
-          # gradle's rootProject inside android/ resolves to android/ → put
-          # key.properties next to settings.gradle.kts (i.e. android/key.properties).
+          # key.properties sits at android/. Paths in it resolve RELATIVE TO
+          # THE APP MODULE (android/app/), so just `upload-keystore.jks`.
           cat > android/key.properties <<EOF
-          storeFile=app/upload-keystore.jks
+          storeFile=upload-keystore.jks
           storePassword=${ANDROID_KEYSTORE_PASSWORD}
           keyAlias=${ANDROID_KEY_ALIAS}
           keyPassword=${ANDROID_KEY_PASSWORD}
