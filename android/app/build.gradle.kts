@@ -36,29 +36,33 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
-    }
-
-    // ───────── ABI filtering — arm64-v8a only ──────────────────────────────
-    //
-    // The bloat (~370 MB universal APK) comes from per-ABI duplication of
-    // AAR native libraries — flutter_gemma's MediaPipe (~90 MB/ABI),
-    // sherpa_onnx (~40 MB/ABI), mobile_scanner (~10 MB/ABI), and
-    // just_audio (ExoPlayer). `splits.abi` is what filters AARs at
-    // packaging time. The matching `defaultConfig.ndk.abiFilters` is set
-    // in an `afterEvaluate` block at the bottom of this file (Flutter's
-    // plugin overwrites our changes if we set them inside `defaultConfig`
-    // here).
-    //
-    // minSdk = 24 (Android 7.0+) is effectively all 64-bit ARM in TH 2026
-    // so dropping armeabi-v7a + x86_64 is safe. To re-introduce later,
-    // add the same ABI string to BOTH this `splits.abi.include(...)` AND
-    // the `afterEvaluate` block below.
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            include("arm64-v8a")
-            isUniversalApk = false
+        // ───────── ABI filtering — arm64-v8a only ─────────────────────────
+        //
+        // The 370 MB universal APK bloat comes from per-ABI duplication of
+        // AAR native libraries — flutter_gemma's MediaPipe (~90 MB/ABI),
+        // sherpa_onnx (~40 MB/ABI), mobile_scanner (~10 MB/ABI), and
+        // just_audio (ExoPlayer). `defaultConfig.ndk.abiFilters` runs at
+        // the `mergeNativeLibs` task and DOES filter `.so` from AARs +
+        // JNI libs folders — but ONLY when set as the canonical filter
+        // (clear default first, then add). Earlier attempt at v1.0.5 used
+        // `abiFilters += listOf("arm64-v8a")` which ADDS to the default
+        // 3-ABI list rather than replacing it → no filtering effect →
+        // 350 MB APK instead of the expected 180 MB. This block clears
+        // first so the result is exactly { "arm64-v8a" }.
+        //
+        // We deliberately don't use `splits.abi` here — when both knobs
+        // are set Gradle insists they match exactly during the
+        // configuration phase (before any afterEvaluate callback can
+        // reconcile them), which makes the build fail with:
+        //   Conflicting configuration : 'armeabi-v7a,arm64-v8a,x86_64'
+        //   in ndk abiFilters cannot be present when splits abi filters
+        //   are set : arm64-v8a
+        //
+        // minSdk = 24 (Android 7.0+) is virtually all 64-bit ARM in
+        // TH 2026 so dropping armeabi-v7a + x86_64 is safe.
+        ndk {
+            abiFilters.clear()
+            abiFilters.add("arm64-v8a")
         }
     }
 
@@ -92,22 +96,4 @@ android {
 
 flutter {
     source = "../.."
-}
-
-// ─── Force-strip non-arm64 ABIs after Flutter's plugin runs ────────────────
-//
-// The Flutter Gradle plugin auto-injects `defaultConfig.ndk.abiFilters` with
-// every default Android platform (armeabi-v7a, arm64-v8a, x86_64). That
-// happens AFTER our `defaultConfig { ndk { ... } }` block above, so any
-// modification made there is silently overwritten — and the resulting
-// `[armeabi-v7a, arm64-v8a, x86_64]` list collides with `splits.abi`'s
-// single-ABI include list, which Gradle rejects with:
-//   Conflicting configuration : 'armeabi-v7a,arm64-v8a,x86_64' in ndk
-//   abiFilters cannot be present when splits abi filters are set : arm64-v8a
-//
-// `afterEvaluate` runs after every plugin (including Flutter's) is done
-// configuring, so trimming the list here is the override that wins.
-afterEvaluate {
-    android.defaultConfig.ndk.abiFilters.clear()
-    android.defaultConfig.ndk.abiFilters.add("arm64-v8a")
 }
