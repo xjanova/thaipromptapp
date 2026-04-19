@@ -19,3 +19,11 @@
 
 # flutter_secure_storage
 -keep class com.it_nomads.fluttersecurestorage.** { *; }
+
+# Flutter references Play Core split-install APIs for deferred components.
+# We don't use deferred components, so tell R8 to ignore the missing classes.
+-dontwarn com.google.android.play.**
+-keep class com.google.android.play.core.** { *; }
+
+# dio / retrofit reflective types
+-keep class * extends java.lang.Exception { *; }
