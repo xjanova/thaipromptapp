@@ -140,14 +140,20 @@ class ApiClient {
 
 /// Inject the compile-time API base URL via `--dart-define=API_BASE_URL=…`.
 ///
-/// Default points at the production brand domain `thaiprompt.online`. The
-/// host transparently 301s to the canonical `main.thaiprompt.online` (Dio
-/// follows redirects automatically). For local/dev builds against a non-prod
-/// backend, override via `--dart-define=API_BASE_URL=https://main.thaiprompt.online/api`
-/// or your tunnel URL.
+/// Default points DIRECTLY at the canonical host `main.thaiprompt.online`,
+/// skipping the bare-domain → canonical redirect entirely. Earlier builds
+/// targeted `thaiprompt.online/api` and relied on the server-side 308 to
+/// hop to canonical, but Dio's redirect-follow on Android sometimes drops
+/// the original POST body or method on certain devices, surfacing as
+/// "ไม่มีสัญญาณอินเทอร์เน็ต" on registration. Hitting the canonical host
+/// straight away makes connectivity rock-solid and one round-trip faster.
+///
+/// The bare domain still 308s in the browser (per `.htaccess`) for
+/// external links / SEO. For local/dev builds against a tunnel, override
+/// via `--dart-define=API_BASE_URL=https://your-tunnel.example/api`.
 const _fallbackBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'https://thaiprompt.online/api',
+  defaultValue: 'https://main.thaiprompt.online/api',
 );
 
 final apiBaseUrlProvider = Provider<String>((_) => _fallbackBaseUrl);

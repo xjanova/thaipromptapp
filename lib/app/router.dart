@@ -51,9 +51,33 @@ final routerProvider = Provider<GoRouter>((ref) {
         '/register',
       }.contains(here);
 
+      // ───────── Guest mode ────────────────────────────────────────────────
+      // Browse-without-login: anyone can wander the home grid, ตลาดสด,
+      // products, shops, and tracking pages (Tracking is read-only by token,
+      // not by user-id). The auth-gate on protected routes (cart checkout,
+      // wallet, profile, my orders) is enforced by the screens themselves —
+      // they push to /login with a snackbar when an action requires a
+      // userId. The router stays out of the way so the user never hits a
+      // dead-end onboarding screen on first launch.
+      const guestAllowedExact = {
+        '/home',
+        '/taladsod',
+        '/taladsod/listings',
+      };
+      final isGuestAllowedPrefix = here.startsWith('/product/')
+          || here.startsWith('/shop/')
+          || here.startsWith('/taladsod/listings/')
+          || here.startsWith('/taladsod/sellers/')
+          || here.startsWith('/orders/') && here.endsWith('/tracking');
+
       if (auth is AuthUnauthenticated) {
-        if (here == '/splash') return '/onboarding';
-        return isAuthRoute ? null : '/onboarding';
+        if (here == '/splash') return '/home';
+        if (isAuthRoute) return null;
+        if (guestAllowedExact.contains(here) || isGuestAllowedPrefix) {
+          return null;
+        }
+        // Anything else (cart, wallet, settings, my orders, ...) needs auth.
+        return '/login';
       }
 
       if (here == '/splash' || isAuthRoute) return '/home';

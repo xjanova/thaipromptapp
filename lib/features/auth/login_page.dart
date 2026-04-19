@@ -61,8 +61,22 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.go('/onboarding'),
+          // Guests are routed to /login when they tap protected actions
+          // (cart, wallet, my orders, ...). Letting back jump to /home
+          // keeps them in the app instead of bouncing to onboarding.
+          onPressed: () => context.go('/home'),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => context.go('/home'),
+            child: Text('ข้ามไปก่อน',
+                style: TpText.bodySm.copyWith(
+                  color: TpColors.muted,
+                  fontWeight: FontWeight.w700,
+                )),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(

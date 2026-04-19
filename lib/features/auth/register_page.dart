@@ -78,7 +78,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.go('/onboarding'),
+          // Mirror the login page — back returns the user to the browse-
+          // ready home, not the onboarding splash.
+          onPressed: () => context.go('/home'),
         ),
       ),
       body: SafeArea(

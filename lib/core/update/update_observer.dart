@@ -7,11 +7,14 @@ import '../../features/update/update_dialog.dart';
 import '../auth/auth_state.dart';
 import 'update_service.dart';
 
-/// Listens for the first successful auth state and triggers an update check.
-/// If a newer release is available we surface [UpdateDialog].
+/// Triggers an update check as soon as auth state resolves — whether the
+/// user is logged in OR browsing as a guest. The endpoint is public, so
+/// gating on AuthAuthenticated meant guest users (the majority on first
+/// launch) never saw the update prompt and got stranded on whatever
+/// version they sideloaded weeks ago.
 ///
-/// Intentionally idempotent per app-launch — we don't re-prompt after dismissal
-/// unless the user relaunches.
+/// Intentionally idempotent per app-launch: we don't re-prompt after the
+/// user dismisses unless they relaunch the app.
 class UpdateObserver extends ConsumerStatefulWidget {
   const UpdateObserver({super.key, required this.child});
   final Widget child;
@@ -24,11 +27,29 @@ class _UpdateObserverState extends ConsumerState<UpdateObserver> {
   bool _checked = false;
 
   @override
+  void initState() {
+    super.initState();
+    // If auth has already resolved by the time we mount (warm start /
+    // hot reload), kick the check ourselves — `ref.listen` only fires
+    // on FUTURE state changes, not the current value.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _checked || !Platform.isAndroid) return;
+      final auth = ref.read(authControllerProvider);
+      if (auth is! AuthUnknown) {
+        _checked = true;
+        _runCheck();
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Sideload update path is Android-only.
     if (Platform.isAndroid) {
       ref.listen(authControllerProvider, (prev, next) {
-        if (next is AuthAuthenticated && !_checked) {
+        // Fire on the FIRST resolved state — Authenticated or Unauthenticated
+        // (i.e. anything other than the initial Unknown).
+        if (!_checked && next is! AuthUnknown) {
           _checked = true;
           _runCheck();
         }

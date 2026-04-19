@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.8] - 2026-04-19
+
+### เปลี่ยน — Guest mode (ไม่ต้อง login ก่อนใช้แอพ)
+- หน้าที่ไม่ต้อง login: `/home`, `/taladsod`, `/taladsod/listings`, `/taladsod/listings/:id`, `/taladsod/sellers/:id`, `/product/:id`, `/shop/:id`, `/orders/:id/tracking` (token-based)
+- หน้าที่ยังต้อง login: `/cart`, `/wallet`, `/wallet/*`, `/affiliate`, `/settings`, `/taladsod/orders` · กดเข้าจะเด้งไป `/login` พร้อมปุ่ม "ข้ามไปก่อน" + ปุ่มย้อนกลับไป `/home`
+- Splash → Home ตรงๆ สำหรับ guest (เคยเป็น Splash → Onboarding)
+- Login/Register page back-arrow ไป `/home` แทน `/onboarding` เพื่อไม่ติด loop
+
+### แก้ — App ส่งทุกคำขอตรงไปที่ canonical host (ไม่พึ่ง 308 redirect อีกแล้ว)
+- API base URL: `https://thaiprompt.online/api` → `https://main.thaiprompt.online/api`
+- เหตุผล: Dio + dart:io HttpClient บน Android บางเครื่องเจอปัญหาเรื่อง POST body หาย/method downgrade ตอน follow 308 → ทำให้แอพแสดง "ไม่มีสัญญาณอินเทอร์เน็ต" ทั้งที่เน็ตปกติ
+- ตอนนี้แอพไม่ต้องผ่าน redirect → 1 round-trip เร็วขึ้น + เสถียรขึ้นทุกเครื่อง
+- Bare-domain `thaiprompt.online` ยัง 308 ปกติสำหรับเบราว์เซอร์ + ลิงก์ภายนอก (`.htaccess` เดิม)
+
+### แก้ — Auto-update prompt ไม่เคยขึ้นเพราะรอ AuthAuthenticated
+- `UpdateObserver` เคย gate ที่ `next is AuthAuthenticated` → guest user ไม่เคยเห็น update dialog
+- v1.0.8: fire ตอน auth state เปลี่ยนจาก `AuthUnknown` → `AuthAuthenticated` หรือ `AuthUnauthenticated` (ครั้งแรกของ session)
+- เพิ่ม fallback ใน `initState`: ถ้า auth resolved ก่อน mount (warm start / hot reload) จะ run check ทันที
+- ผล: app ทุกครั้งที่เปิดจะเช็ค `/v1/app/latest-version` และเด้ง dialog ถ้ามีเวอร์ชั่นใหม่
+
+### ภายใน
+- ผล packaging.jniLibs.excludes (v1.0.7) verified: APK เหลือ 199 MB · 20 .so files · arm64-v8a เพียงอย่างเดียว ✅
+
 ## [1.0.7] - 2026-04-19
 
 ### แก้ — fix สมัครสมาชิกแสดง "ไม่มีสัญญาณอินเทอร์เน็ต" (server-side, no app update needed)
@@ -162,7 +185,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Riverpod 2 · go_router · dio + Sanctum interceptor · drift · sherpa-onnx
 - CI/CD: GitHub Actions สร้าง APK (universal + split-per-abi) + AAB ทุก tag `v*.*.*`
 
-[Unreleased]: https://github.com/xjanova/thaipromptapp/compare/v1.0.7...HEAD
+[Unreleased]: https://github.com/xjanova/thaipromptapp/compare/v1.0.8...HEAD
+[1.0.8]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.8
 [1.0.7]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.7
 [1.0.6]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.6
 [1.0.5]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.5
