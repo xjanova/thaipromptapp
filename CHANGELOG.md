@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-04-19
+
+### เปลี่ยน — APK ขนาดเล็กลง ~50%
+- **APK เหลือ arm64-v8a เพียงอย่างเดียว** · ขนาดจาก ~370 MB (universal) → คาด ~180 MB
+- `android/app/build.gradle.kts`: เพิ่ม `ndk.abiFilters = ["arm64-v8a"]` ใน `defaultConfig` · ตัด armeabi-v7a (มือถือเก่า 32-bit ปี 2016 ลงไป) + x86_64 (emulator only)
+- เหตุผล: native libs จาก `flutter_gemma` (MediaPipe ~90 MB/ABI) + `sherpa_onnx` (~40 MB/ABI) + `mobile_scanner` คือตัวบวมหลัก · 1 ABI ก็เพียงพอสำหรับ minSdk 24 (Android 7.0+)
+- ผลกระทบ: เครื่อง 32-bit ที่อายุ ≥ 9 ปี จะติดตั้งไม่ได้ — ในไทยปี 2026 น้อยมาก
+
+### เปลี่ยน — Release pipeline ผอมลง
+- `.github/workflows/release.yml`: เลิก build AAB, เลิก split-per-abi, เหลือ `flutter build apk --target-platform=android-arm64` ตัวเดียว
+- ผลผลิต: `thaipromptapp-X.Y.Z.apk` (1 ไฟล์) + `SHA256SUMS.txt` แทน 5 ไฟล์เดิม
+- CI/CD เร็วขึ้น ~50% (จาก ~15 นาที → ~7-8 นาที)
+
+### Backend
+- `App\Services\AppReleaseSync::findApkAsset` รองรับ asset naming ใหม่ (`thaipromptapp-X.Y.Z.apk`) แล้วยังดึงรุ่นเก่า (universal/arm64-v8a/aab) ได้ — backward compatible · auto-update flow ไม่แตก
+
+### หมายเหตุ
+- ถ้าวันหลังต้องการ support arm32/x86: ใส่กลับใน `abiFilters` ของ `build.gradle.kts` ได้เลย (1 บรรทัด)
+- AAB ต้องใช้เมื่อขึ้น Play Store เท่านั้น · เมื่อพร้อมเปิดบน Play Store จะกลับมาเปิด build AAB ใน workflow
+
 ## [1.0.4] - 2026-04-19
 
 ### เพิ่ม — ตลาดสดไทยพร๊อม (Fresh Market)
@@ -117,7 +137,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Riverpod 2 · go_router · dio + Sanctum interceptor · drift · sherpa-onnx
 - CI/CD: GitHub Actions สร้าง APK (universal + split-per-abi) + AAB ทุก tag `v*.*.*`
 
-[Unreleased]: https://github.com/xjanova/thaipromptapp/compare/v1.0.4...HEAD
+[Unreleased]: https://github.com/xjanova/thaipromptapp/compare/v1.0.5...HEAD
+[1.0.5]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.5
 [1.0.4]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.4
 [1.0.3]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.3
 [1.0.2]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.2

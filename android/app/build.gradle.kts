@@ -35,6 +35,22 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // ───────── ABI filtering ─────────────────────────────────────────────
+        // We ship arm64-v8a ONLY. flutter_gemma's MediaPipe + sherpa_onnx +
+        // mobile_scanner each carry ~50–90 MB of native .so per ABI, so a
+        // universal APK with all three ABIs balloons to ~370 MB.
+        //
+        // Modern Android phones (minSdk 24 / Android 7.0+) are virtually all
+        // 64-bit ARM — armeabi-v7a phones are negligible in TH 2026 and
+        // x86_64 only exists on emulators. Dropping the other ABIs cuts
+        // ~170 MB off the APK and ~50% off CI build time.
+        //
+        // To re-add an ABI later (e.g. for a low-end TH market segment),
+        // append "armeabi-v7a" or "x86_64" to the list and rebuild.
+        ndk {
+            abiFilters += listOf("arm64-v8a")
+        }
     }
 
     signingConfigs {
