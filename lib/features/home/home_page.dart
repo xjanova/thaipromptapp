@@ -74,6 +74,7 @@ class HomePage extends ConsumerWidget {
                     case NavTab.affiliate:
                       context.go('/affiliate');
                     case NavTab.menu:
+                      context.go('/settings');
                     case NavTab.me:
                     case NavTab.home:
                       break;

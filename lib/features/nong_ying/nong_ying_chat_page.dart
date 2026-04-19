@@ -87,20 +87,26 @@ class _NongYingChatPageState extends ConsumerState<NongYingChatPage> {
         history: _history,
         context: widget.initialContext,
       );
+      // Strip any male polite particles before they reach the bubble.
+      final sanitizer = ReplySanitizer();
       _sub = stream.listen((chunk) {
+        final safe = sanitizer.process(chunk);
+        if (safe.isEmpty) return;
         setState(() {
-          _pendingReply += chunk;
+          _pendingReply += safe;
         });
         _scrollToBottom();
       }, onDone: () {
+        final tail = sanitizer.flush();
         setState(() {
+          if (tail.isNotEmpty) _pendingReply += tail;
           if (_pendingReply.isNotEmpty) {
             _history.add(ChatTurn(role: ChatRole.assistant, text: _pendingReply));
           }
           _pendingReply = '';
           _streaming = false;
         });
-        _maybeSpeakLast();
+        // Do NOT auto-speak — users tap the "ฟังเสียง" button on a bubble to hear it.
       }, onError: (Object e) {
         setState(() {
           _history.add(
@@ -137,11 +143,6 @@ class _NongYingChatPageState extends ConsumerState<NongYingChatPage> {
     } catch (_) {
       // telemetry is best-effort
     }
-  }
-
-  Future<void> _maybeSpeakLast() async {
-    // Tap-to-play instead of auto-speaking — saves bandwidth + respects
-    // users in silent environments. See [_speakText] for the tap handler.
   }
 
   Future<void> _speakText(String text) async {

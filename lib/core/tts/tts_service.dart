@@ -5,18 +5,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/api_client.dart';
 import '../remote_config/feature_flags.dart';
+import '../remote_config/remote_config.dart';
 import 'gemini_tts_service.dart';
+import 'piper_tts_service.dart';
+import 'piper_voice_manager.dart';
+import 'tts_router.dart';
 
 /// Text-to-speech for น้องหญิง's voice.
 ///
-/// Engines:
-///   • [GeminiTtsService] — online, Gemini 3.1 Native Audio via backend
-///     `/v1/ai/tts`. Thai female voice "premwadee". Free-tier covers MVP.
-///   • [StubTtsService] — no-op fallback for dev or when TTS is disabled.
-///   • Piper/NECTEC (Phase 5.3) — offline engine via sherpa_onnx; same
-///     interface so swap is free.
-///
-/// UI code only holds a [TtsService]; concrete choice lives in the provider.
+/// Policy (set by the user, enforced in code):
+///   • Chat replies do NOT auto-speak. The UI only calls [speak] when the
+///     user taps "ฟังเสียง" on a specific bubble.
+///   • Primary engine: Gemini 3.1 Native Audio via backend `/v1/ai/tts`.
+///   • When Gemini returns 429/403 (quota/auth), router auto-falls back to
+///     Piper on-device for the rest of the session.
+///   • Piper voice assets are downloaded explicitly from Settings (never
+///     bundled in the APK). If Piper isn't installed the fallback is a stub.
+///   • All voices are female · male voices are removed.
 abstract interface class TtsService {
   Future<void> initialize();
   Future<void> speak(String text);
@@ -27,8 +32,8 @@ abstract interface class TtsService {
   Future<void> dispose();
 }
 
-/// Last-resort fallback — emits "speaking" for a plausible duration so UI
-/// feedback stays consistent even when no real engine is connected.
+/// API-compatible no-op. Used when TTS is disabled by flag or Gemini init
+/// fails AND Piper isn't installed yet.
 class StubTtsService implements TtsService {
   final _speakingController = StreamController<bool>.broadcast();
   bool _speaking = false;
@@ -72,29 +77,35 @@ class StubTtsService implements TtsService {
   }
 }
 
-/// Resolves the best available engine once and caches it.
-///   • `tts_enabled` flag off → Stub
-///   • Gemini creation succeeds → Gemini
-///   • otherwise → Stub
+/// Build the composite engine:
+///   • TtsRouter( primary = Gemini , fallback = Piper-or-Stub )
+///
+/// The router handles the quota-exceeded flip transparently.
 final ttsServiceProvider = FutureProvider<TtsService>((ref) async {
   final on = ref.watch(flagProvider(FlagKeys.ttsEnabled));
-  // In debug we default TTS on; production waits for the remote flag.
+  // Dev builds default TTS on; production waits for the `tts_enabled` flag.
   if (!on && !kDebugMode) {
     final stub = StubTtsService();
     ref.onDispose(stub.dispose);
     return stub;
   }
 
+  final api = await ref.watch(apiClientProvider.future);
+  final rc = ref.watch(remoteConfigControllerProvider).valueOrNull ?? RemoteConfig.empty();
+
+  final primary = GeminiTtsService(api);
+  TtsService fallback;
   try {
-    final api = await ref.watch(apiClientProvider.future);
-    final svc = GeminiTtsService(api);
-    await svc.initialize();
-    ref.onDispose(svc.dispose);
-    return svc;
+    final manager = PiperVoiceManager(rc: rc, api: api);
+    fallback = PiperTtsService(manager: manager);
+    // initialize() will no-op when the voice isn't installed yet.
   } catch (e) {
-    if (kDebugMode) debugPrint('[TTS] Gemini init failed, stub fallback: $e');
-    final stub = StubTtsService();
-    ref.onDispose(stub.dispose);
-    return stub;
+    if (kDebugMode) debugPrint('[TTS] Piper unavailable, stub fallback: $e');
+    fallback = StubTtsService();
   }
+
+  final router = TtsRouter(primary: primary, fallback: fallback);
+  await router.initialize();
+  ref.onDispose(router.dispose);
+  return router;
 });
