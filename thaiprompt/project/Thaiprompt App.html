@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Thaiprompt · ไทยพร๊อม — Community Market</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<style>
+  .stage-head{padding:48px 48px 24px;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand .logo{
+    width:54px;height:54px;border-radius:16px;background:#0E0B1F;color:#FFC94D;
+    display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk';font-weight:900;font-size:28px;
+    border:3px solid #0E0B1F;box-shadow:4px 4px 0 #FF3E6C;
+  }
+  .brand h1{margin:0;font:900 30px/1 'Space Grotesk';letter-spacing:-.03em}
+  .brand .sub{font:600 13px 'JetBrains Mono';color:#6E6A85;letter-spacing:.15em;text-transform:uppercase;margin-top:4px}
+
+  .meta-grid{
+    padding:0 48px 36px;
+    display:grid;grid-template-columns:repeat(4,1fr);gap:10px;
+  }
+  .meta{
+    background:#fff;border:2px solid #0E0B1F;border-radius:14px;padding:10px 12px;
+  }
+  .meta .k{font:600 10px 'JetBrains Mono';color:#6E6A85;letter-spacing:.15em;text-transform:uppercase}
+  .meta .v{font:700 13px 'IBM Plex Sans Thai';margin-top:2px}
+
+  .row{
+    display:flex;gap:36px;padding:0 48px 48px;
+    overflow-x:auto;scroll-snap-type:x mandatory;
+    align-items:flex-start;
+  }
+  .row > *{scroll-snap-align:start}
+  .row-label{
+    font:700 11px 'JetBrains Mono';color:#6E6A85;letter-spacing:.2em;text-transform:uppercase;
+    padding:0 48px 10px;display:flex;align-items:center;gap:12px;
+  }
+  .row-label::before{content:'';width:8px;height:8px;border-radius:50%;background:#FF3E6C}
+  .row-label::after{content:'';flex:1;height:1px;background:rgba(14,11,31,.15)}
+
+  .section-title{
+    padding:48px 48px 8px;
+    font-family:'Space Grotesk';font-weight:700;font-size:40px;letter-spacing:-.025em;
+  }
+  .section-title .hl{background:#FFC94D;padding:0 8px;display:inline-block;border:2.5px solid #0E0B1F;border-radius:10px;box-shadow:3px 3px 0 #0E0B1F;transform:rotate(-1deg)}
+  .section-desc{padding:0 48px 24px;max-width:680px;color:#2A2640;font-size:15px;line-height:1.55}
+
+  /* tweak panel */
+  .tweaks{
+    position:fixed;right:20px;bottom:20px;z-index:50;
+    width:280px;padding:14px;border-radius:18px;
+    background:#FFF8EE;border:2.5px solid #0E0B1F;box-shadow:6px 6px 0 #0E0B1F;
+    font-family:'IBM Plex Sans Thai',sans-serif;
+    display:none;
+  }
+  .tweaks.on{display:block}
+  .tweaks h3{margin:0 0 10px;font:900 14px 'Space Grotesk';display:flex;align-items:center;gap:8px}
+  .tweaks h3::before{content:'◆';color:#FF3E6C}
+  .tweaks .k{font:600 10px 'JetBrains Mono';color:#6E6A85;letter-spacing:.12em;text-transform:uppercase;margin-top:10px;margin-bottom:4px}
+  .tweaks .opt{display:flex;gap:6px;flex-wrap:wrap}
+  .tweaks .opt button{
+    border:2px solid #0E0B1F;background:#fff;padding:5px 10px;border-radius:999px;
+    font:600 11px 'IBM Plex Sans Thai';cursor:pointer;
+  }
+  .tweaks .opt button.on{background:#0E0B1F;color:#FFC94D}
+
+  /* bg theme classes */
+  body.theme-vibrant{ --pink:#FF3E6C; --mint:#00D4B4; --mango:#FFC94D; }
+  body.theme-warm{ --pink:#C7502D; --mint:#2F7A5F; --mango:#E6A23B; }
+  body.theme-neon{ --pink:#FF2E9A; --mint:#00E0C7; --mango:#FFD400; }
+
+</style>
+</head>
+<body class="theme-vibrant">
+
+<div class="stage grain" id="root">
+  <div class="stage-head">
+    <div class="brand">
+      <div class="logo">T</div>
+      <div>
+        <h1>Thaiprompt <span style="background:#FF3E6C;color:#fff;padding:2px 8px;border-radius:8px;font-size:14px;vertical-align:middle;box-shadow:2px 2px 0 #0E0B1F">v1.0</span></h1>
+        <div class="sub">ไทยพร๊อม · Community Marketplace</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="chip" style="background:#FFC94D">🇹🇭 Android</span>
+      <span class="chip" style="background:#00D4B4">9 screens</span>
+      <span class="chip" style="background:#FF3E6C;color:#fff">3D · Vibrant Pop</span>
+    </div>
+  </div>
+
+  <div class="meta-grid">
+    <div class="meta"><div class="k">Audience</div><div class="v">ตลาดนัดไทย / ชุมชน</div></div>
+    <div class="meta"><div class="k">Visual</div><div class="v">Isometric + Puffy 3D · int. 8/10</div></div>
+    <div class="meta"><div class="k">Wallet</div><div class="v">PromptPay · Coins · Withdraw · Analytics</div></div>
+    <div class="meta"><div class="k">Affiliate</div><div class="v">Commission + Invite + Tiered</div></div>
+  </div>
+
+  <!-- ========= ROW 1: DISCOVERY ========= -->
+  <div class="section-title">01. ค้นพบตลาด <span class="hl">Discover</span></div>
+  <div class="section-desc">เริ่มต้นจากหน้า Onboarding เต็มฟอร์มที่นำเสนอจุดเด่นของ Thaiprompt 3 ข้อ · แล้วเข้าสู่หน้าแรกที่มีฮีโร่ตลาดวันนี้, วิดเจ็ท Wallet + Affiliate, หมวดหมู่แบบ marquee และร้านใกล้บ้าน</div>
+  <div class="row-label">Onboarding · Home</div>
+  <div class="row" id="row-1"></div>
+
+  <!-- ========= ROW 2: BROWSE ========= -->
+  <div class="section-title">02. ดูสินค้า <span class="hl" style="background:#00D4B4">Browse</span></div>
+  <div class="section-desc">หน้ารายละเอียดสินค้าแบบ 3D hero พร้อม add-ons, ร้านค้าเจ้าของ และ callout ให้แชร์ Affiliate · โปรไฟล์ร้านมีสถิติ, CTA ติดตาม/แชท และสินค้าในร้าน</div>
+  <div class="row-label">Product detail · Shop profile</div>
+  <div class="row" id="row-2"></div>
+
+  <!-- ========= ROW 3: BUY ========= -->
+  <div class="section-title">03. สั่งซื้อ &amp; ติดตาม <span class="hl" style="background:#FF3E6C;color:#fff">Order</span></div>
+  <div class="section-desc">ตะกร้าใช้ Coins ได้ · จ่ายด้วย Wallet ตรง ๆ · ติดตามด้วย map 3D + timeline · แชทกับร้านและแนบสินค้าให้กดสั่งในแชทได้</div>
+  <div class="row-label">Cart · Tracking · Chat</div>
+  <div class="row" id="row-3"></div>
+
+  <!-- ========= ROW 4: MONEY ========= -->
+  <div class="section-title">04. เงินและแนะนำ <span class="hl" style="background:#6B4BFF;color:#fff">Wallet · Affiliate</span></div>
+  <div class="section-desc">Wallet แบบ dark hero มีบัตรบาลานซ์เรืองแสง, QR PromptPay, กราฟใช้จ่าย 7 วัน และประวัติ · Affiliate แสดง Tier, รายได้เดือน, ลิงก์ทำเงินสูงสุด และเชิญเพื่อน</div>
+  <div class="row-label">Wallet · Affiliate Dashboard</div>
+  <div class="row" id="row-4"></div>
+
+</div>
+
+<!-- Tweaks panel -->
+<div class="tweaks" id="tweaks">
+  <h3>Tweaks</h3>
+  <div class="k">Color theme</div>
+  <div class="opt" data-key="theme">
+    <button data-v="vibrant" class="on">Vibrant Pop</button>
+    <button data-v="warm">Warm Thai</button>
+    <button data-v="neon">Neon</button>
+  </div>
+  <div class="k">3D intensity</div>
+  <div class="opt" data-key="intensity">
+    <button data-v="low">Low</button>
+    <button data-v="mid">Mid</button>
+    <button data-v="high" class="on">High</button>
+  </div>
+  <div class="k">Language</div>
+  <div class="opt" data-key="lang">
+    <button data-v="th" class="on">ไทย</button>
+    <button data-v="en">EN</button>
+    <button data-v="both">ไทย+EN</button>
+  </div>
+  <div style="font:500 11px 'JetBrains Mono';color:#6E6A85;margin-top:10px">เลื่อนแนวนอนเพื่อดูทุกหน้าจอ →</div>
+</div>
+
+<!-- React stack -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="blobs.jsx"></script>
+<script type="text/babel" src="phone.jsx"></script>
+<script type="text/babel" src="screens-a.jsx"></script>
+<script type="text/babel" src="screens-b.jsx"></script>
+
+<script type="text/babel">
+const TWEAK_DEFAULS = /*EDITMODE-BEGIN*/{
+  "theme": "warm",
+  "intensity": "high",
+  "lang": "th"
+}/*EDITMODE-END*/;
+
+function PhoneWithTab({children, label, active}){
+  return (
+    <Phone label={label}>
+      <div style={{display:'flex',flexDirection:'column',minHeight:'100%'}}>
+        <div style={{flex:1}}>{children}</div>
+        {active && <TabBar active={active}/>}
+      </div>
+    </Phone>
+  );
+}
+
+// Row 1
+ReactDOM.createRoot(document.getElementById('row-1')).render(
+  <>
+    <Phone label="01 · Onboarding"><Onboarding/></Phone>
+    <PhoneWithTab label="02 · Home · หน้าแรก" active="home"><Home/></PhoneWithTab>
+  </>
+);
+// Row 2
+ReactDOM.createRoot(document.getElementById('row-2')).render(
+  <>
+    <Phone label="03 · Product · สินค้า"><Product/></Phone>
+    <Phone label="04 · Shop · ร้านค้า"><Shop/></Phone>
+  </>
+);
+// Row 3
+ReactDOM.createRoot(document.getElementById('row-3')).render(
+  <>
+    <Phone label="05 · Cart · ตะกร้า"><Cart/></Phone>
+    <Phone label="06 · Tracking · ติดตาม"><Tracking/></Phone>
+    <Phone label="07 · Chat · แชท"><Chat/></Phone>
+  </>
+);
+// Row 4
+ReactDOM.createRoot(document.getElementById('row-4')).render(
+  <>
+    <PhoneWithTab label="08 · Wallet" active="wallet"><Wallet/></PhoneWithTab>
+    <PhoneWithTab label="09 · Affiliate" active="affiliate"><Affiliate/></PhoneWithTab>
+  </>
+);
+
+// Screen labels for commenting
+document.querySelectorAll('[id^=row-] > *').forEach((el,i)=>{
+  const labels = ['01 Onboarding','02 Home','03 Product','04 Shop','05 Cart','06 Tracking','07 Chat','08 Wallet','09 Affiliate'];
+  el.setAttribute('data-screen-label', labels[i] || `Screen ${i+1}`);
+});
+
+// ========== Edit mode ==========
+let editOn = false;
+const tweaks = document.getElementById('tweaks');
+window.addEventListener('message',(e)=>{
+  if (!e.data) return;
+  if (e.data.type==='__activate_edit_mode'){ editOn=true; tweaks.classList.add('on'); }
+  if (e.data.type==='__deactivate_edit_mode'){ editOn=false; tweaks.classList.remove('on'); }
+});
+window.parent.postMessage({type:'__edit_mode_available'}, '*');
+
+// Apply tweaks
+function applyTweaks(s){
+  document.body.classList.remove('theme-vibrant','theme-warm','theme-neon');
+  document.body.classList.add('theme-'+s.theme);
+}
+tweaks.querySelectorAll('.opt').forEach(g=>{
+  const key = g.dataset.key;
+  g.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      g.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      const v = b.dataset.v;
+      const edits = {}; edits[key]=v;
+      applyTweaks({...TWEAK_DEFAULS, ...edits, [key]:v});
+      window.parent.postMessage({type:'__edit_mode_set_keys',edits},'*');
+    });
+  });
+});
+applyTweaks(TWEAK_DEFAULS);
+</script>
+</body>
+</html>

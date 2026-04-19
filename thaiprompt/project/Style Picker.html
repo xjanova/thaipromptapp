@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>เลือกสไตล์ — Community Market</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#f3efe7;
+    --ink:#1a1915;
+    --muted:#6b6557;
+    --line:rgba(26,25,21,.12);
+    --card:#fbf8f1;
+    --accent:#c7502d;
+    --jade:#2f7a5f;
+    --mango:#e6a23b;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:'IBM Plex Sans Thai','Plus Jakarta Sans',system-ui,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    line-height:1.5;
+    padding:48px 32px 120px;
+  }
+  .wrap{max-width:1240px;margin:0 auto}
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  h1{
+    font-size:clamp(32px,4vw,52px);
+    line-height:1.05;
+    margin:.4em 0 .2em;
+    font-weight:600;
+    letter-spacing:-.02em;
+  }
+  .lede{color:var(--muted);max-width:680px;margin:0 0 40px;font-size:16px}
+  .section{margin-top:56px}
+  .section h2{
+    font-size:22px;
+    margin:0 0 4px;
+    font-weight:600;
+    letter-spacing:-.01em;
+  }
+  .section .hint{color:var(--muted);font-size:14px;margin:0 0 20px}
+
+  .grid{display:grid;gap:16px}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  @media (max-width:900px){.g4,.g3{grid-template-columns:repeat(2,1fr)}}
+  @media (max-width:560px){.g4,.g3,.g2{grid-template-columns:1fr}}
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:18px;
+    overflow:hidden;
+    cursor:pointer;
+    transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    display:flex;flex-direction:column;
+    position:relative;
+  }
+  .card:hover{transform:translateY(-2px);box-shadow:0 12px 28px -18px rgba(0,0,0,.25)}
+  .card.selected{border-color:var(--ink);box-shadow:0 0 0 2px var(--ink) inset}
+  .card .preview{
+    aspect-ratio: 4/5;
+    display:flex;align-items:center;justify-content:center;
+    position:relative;overflow:hidden;
+  }
+  .card .meta{padding:14px 16px 16px;border-top:1px solid var(--line)}
+  .card .title{font-weight:600;font-size:15px;margin:0 0 2px}
+  .card .desc{font-size:12.5px;color:var(--muted);margin:0;line-height:1.45}
+  .check{
+    position:absolute;top:12px;right:12px;
+    width:24px;height:24px;border-radius:50%;
+    background:var(--ink);color:#fff;
+    display:none;align-items:center;justify-content:center;
+    font-size:14px;
+  }
+  .card.selected .check{display:flex}
+
+  /* ===== mini phone mockups (previews) ===== */
+  .phone{
+    width:62%;aspect-ratio:9/19;border-radius:26px;
+    background:#fff;position:relative;overflow:hidden;
+    box-shadow:0 20px 40px -20px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.08);
+  }
+  .phone .notch{
+    position:absolute;top:8px;left:50%;transform:translateX(-50%);
+    width:36%;height:14px;background:#111;border-radius:10px;z-index:5;
+  }
+  .phone .status{
+    position:absolute;top:6px;left:14px;right:14px;
+    display:flex;justify-content:space-between;
+    font-family:'JetBrains Mono',monospace;font-size:7px;color:#111;z-index:4;
+  }
+
+  /* ---- CLAY style ---- */
+  .clay-bg{background:linear-gradient(160deg,#ffe8d6,#ffc9a3)}
+  .clay-blob{
+    position:absolute;border-radius:50%;
+    box-shadow:inset 6px 6px 12px rgba(255,255,255,.8), inset -6px -6px 12px rgba(0,0,0,.08);
+  }
+  .clay-card{
+    position:absolute;background:#fff;border-radius:18px;
+    box-shadow:0 6px 14px -6px rgba(190,90,40,.25), inset 0 -4px 0 rgba(0,0,0,.04);
+  }
+
+  /* ---- GLASS ---- */
+  .glass-bg{background:linear-gradient(160deg,#1e2a4d,#3b2e6b 60%,#6e4a9a)}
+  .glass-orb{
+    position:absolute;border-radius:50%;
+    background:radial-gradient(circle at 30% 30%, #ffd1f2, #a066ff 60%, #3a1a6b 100%);
+    filter:blur(.3px);
+  }
+  .glass-card{
+    position:absolute;background:rgba(255,255,255,.14);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border:1px solid rgba(255,255,255,.28);border-radius:14px;
+  }
+
+  /* ---- NEUMORPHIC ---- */
+  .neu-bg{background:#e6e7ee}
+  .neu-card{
+    position:absolute;background:#e6e7ee;border-radius:16px;
+    box-shadow:6px 6px 14px #c5c6cd, -6px -6px 14px #ffffff;
+  }
+  .neu-pill{
+    position:absolute;background:#e6e7ee;border-radius:20px;
+    box-shadow:inset 4px 4px 8px #c5c6cd, inset -4px -4px 8px #ffffff;
+  }
+
+  /* ---- ISOMETRIC ---- */
+  .iso-bg{background:linear-gradient(180deg,#fff4c2,#ffd56b)}
+  .iso-stall{
+    position:absolute;width:60%;left:20%;top:30%;
+    height:40%;
+    transform:rotateX(55deg) rotateZ(-30deg);
+    transform-style:preserve-3d;
+  }
+  .iso-roof{position:absolute;inset:0;background:#c7502d;border-radius:6px;
+    box-shadow:0 8px 0 #8b3418;}
+  .iso-canopy{
+    position:absolute;top:-20%;left:-6%;right:-6%;height:25%;
+    background:repeating-linear-gradient(90deg,#c7502d 0 12px,#fff 12px 24px);
+    border-radius:4px;
+  }
+  .iso-floor{
+    position:absolute;inset:auto 0 0 0;height:20%;
+    background:#8b3418;border-radius:4px;
+  }
+
+  /* ---- REALISTIC RENDER ---- */
+  .render-bg{background:radial-gradient(circle at 60% 40%,#f6eedd,#cbbfa0)}
+  .render-product{
+    position:absolute;width:52%;aspect-ratio:1;left:24%;top:22%;
+    border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #fff 0%, #f1a13a 30%, #c7502d 75%, #6b2a10 100%);
+    box-shadow:0 30px 30px -10px rgba(80,30,10,.5);
+  }
+  .render-plate{
+    position:absolute;width:70%;aspect-ratio:3/1;left:15%;top:70%;
+    background:radial-gradient(ellipse at center, rgba(0,0,0,.35), transparent 70%);
+    filter:blur(2px);
+  }
+
+  /* ===== color mood swatches ===== */
+  .mood{
+    aspect-ratio:4/3;display:flex;flex-direction:column;
+  }
+  .mood .swatches{flex:1;display:flex}
+  .mood .sw{flex:1}
+  .mood .meta{border-top:1px solid var(--line)}
+
+  /* ===== generic phone inner previews ===== */
+  .mini-tile{position:absolute;background:#fff;border-radius:10px;box-shadow:0 4px 10px -4px rgba(0,0,0,.15)}
+  .mini-bar{position:absolute;background:rgba(0,0,0,.15);border-radius:3px;height:4px}
+
+  /* sticky footer */
+  .dock{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    background:var(--ink);color:#fff;border-radius:999px;
+    padding:10px 14px 10px 20px;
+    display:flex;align-items:center;gap:14px;
+    box-shadow:0 16px 40px -10px rgba(0,0,0,.35);
+    font-size:13px;z-index:50;
+    max-width:calc(100vw - 40px);
+  }
+  .dock .count{opacity:.7;font-family:'JetBrains Mono',monospace;font-size:11px}
+  .dock button{
+    background:#fff;color:#111;border:0;border-radius:999px;
+    padding:8px 16px;font-weight:600;cursor:pointer;font-family:inherit;
+    font-size:13px;
+  }
+  .dock button:disabled{opacity:.4;cursor:not-allowed}
+
+  /* text-option pills */
+  .pills{display:flex;flex-wrap:wrap;gap:8px}
+  .pill{
+    background:var(--card);border:1px solid var(--line);
+    border-radius:999px;padding:10px 16px;font-size:14px;cursor:pointer;
+    transition:all .15s ease;
+    font-family:inherit;
+  }
+  .pill:hover{border-color:var(--ink)}
+  .pill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+  textarea{
+    width:100%;min-height:90px;resize:vertical;
+    border:1px solid var(--line);border-radius:12px;
+    background:var(--card);padding:14px;font:inherit;color:var(--ink);
+  }
+
+  .slider-row{display:flex;align-items:center;gap:14px;max-width:520px}
+  .slider-row input{flex:1}
+  .slider-row output{
+    font-family:'JetBrains Mono',monospace;font-size:13px;
+    background:var(--card);border:1px solid var(--line);
+    padding:6px 10px;border-radius:8px;min-width:42px;text-align:center;
+  }
+
+  .divider{height:1px;background:var(--line);margin:72px 0 0}
+
+  details{margin-top:8px}
+  summary{cursor:pointer;color:var(--muted);font-size:13px}
+
+  .sent{
+    display:none;text-align:center;padding:80px 20px;
+  }
+  .sent.on{display:block}
+  body.done .wrap > *:not(.sent){display:none}
+  body.done .dock{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Community Market · Style Picker</p>
+  <h1>เลือกทิศทางของแอปก่อนเริ่มออกแบบ</h1>
+  <p class="lede">แตะการ์ดเพื่อเลือก ดูตัวอย่างจริง ๆ ของแต่ละสไตล์ก่อนตัดสินใจ เลือกได้หลายอย่าง แล้วกด <b>ส่งคำตอบ</b> ด้านล่างเพื่อให้เริ่มออกแบบได้เลย</p>
+
+  <!-- ========== VISUAL STYLE ========== -->
+  <div class="section">
+    <h2>1 · 3D Aesthetic</h2>
+    <p class="hint">สไตล์ภาพของแอป — เลือกได้ 1 อย่าง (หรือหลายอย่างถ้าอยากให้ลองหลายตัว)</p>
+    <div class="grid g3" data-group="visual_style" data-multi="true">
+
+      <!-- CLAY -->
+      <div class="card" data-value="Claymorphism">
+        <div class="preview clay-bg">
+          <div class="phone">
+            <div class="notch"></div>
+            <div style="position:absolute;inset:22px 10px 10px;background:#fff5eb;border-radius:18px;overflow:hidden">
+              <div class="clay-blob" style="width:60%;aspect-ratio:1;top:-10%;right:-20%;background:#ffb27d"></div>
+              <div class="clay-card" style="left:8%;top:20%;width:84%;height:28%;background:#ffd6b8"></div>
+              <div class="clay-card" style="left:8%;top:52%;width:40%;height:22%;"></div>
+              <div class="clay-card" style="right:8%;top:52%;width:40%;height:22%;background:#ffe8d6"></div>
+              <div class="clay-card" style="left:8%;bottom:6%;width:84%;height:12%;background:#ffb27d"></div>
+            </div>
+          </div>
+          <div class="check">✓</div>
+        </div>
+        <div class="meta">
+          <p class="title">Claymorphism</p>
+          <p class="desc">กลม นุ่ม อบอุ่น สีพาสเทล รู้สึกเป็นกันเอง</p>
+        </div>
+      </div>
+
+      <!-- GLASS -->
+      <div class="card" data-value="Glassmorphism">
+        <div class="preview glass-bg">
+          <div class="phone" style="background:#241a44">
+            <div class="notch"></div>
+            <div class="glass-orb" style="width:70%;aspect-ratio:1;top:8%;left:15%"></div>
+            <div class="glass-card" style="left:8%;top:28%;width:84%;height:30%"></div>
+            <div class="glass-card" style="left:8%;top:62%;width:40%;height:18%"></div>
+            <div class="glass-card" style="right:8%;top:62%;width:40%;height:18%"></div>
+            <div class="glass-card" style="left:8%;bottom:6%;width:84%;height:8%"></div>
+          </div>
+          <div class="check">✓</div>
+        </div>
+        <div class="meta">
+          <p class="title">Glassmorphism</p>
+          <p class="desc">ฝ้า เบลอ หรูหรา มีมิติ พรีเมียม</p>
+        </div>
+      </div>
+
+      <!-- NEUMORPHIC -->
+      <div class="card" data-value="Neumorphic">
+        <div class="preview neu-bg">
+          <div class="phone" style="background:#e6e7ee">
+            <div class="notch"></div>
+            <div class="neu-card" style="left:8%;top:10%;width:84%;height:20%"></div>
+            <div class="neu-pill" style="left:8%;top:34%;width:84%;height:8%"></div>
+            <div class="neu-card" style="left:8%;top:46%;width:40%;height:24%"></div>
+            <div class="neu-card" style="right:8%;top:46%;width:40%;height:24%"></div>
+            <div class="neu-pill" style="left:8%;bottom:6%;width:84%;height:10%"></div>
+          </div>
+          <div class="check">✓</div>
+        </div>
+        <div class="meta">
+          <p class="title">Neumorphic</p>
+          <p class="desc">เงานุ่ม รู้สึกสัมผัสได้ มินิมอลแต่มีมิติ</p>
+        </div>
+      </div>
+
+      <!-- ISOMETRIC -->
+      <div class="card" data-value="Isometric illustrations">
+        <div class="preview iso-bg">
+          <div class="phone" style="background:#fffaf0">
+            <div class="notch"></div>
+            <!-- simple isometric stall -->
+            <svg viewBox="0 0 100 140" style="position:absolute;inset:22px 6px 6px;width:calc(100% - 12px);height:calc(100% - 28px)" preserveAspectRatio="xMidYMid meet">
+              <!-- ground -->
+              <ellipse cx="50" cy="110" rx="40" ry="8" fill="#ffe3a0"/>
+              <!-- stall posts -->
+              <rect x="24" y="55" width="3" height="48" fill="#8b3418"/>
+              <rect x="73" y="55" width="3" height="48" fill="#8b3418"/>
+              <!-- canopy stripes -->
+              <path d="M18 55 L82 55 L78 40 L22 40 Z" fill="#c7502d"/>
+              <path d="M22 40 L78 40 L74 48 L26 48 Z" fill="#fff" opacity=".8"/>
+              <!-- counter -->
+              <rect x="22" y="70" width="56" height="26" rx="2" fill="#e6a23b"/>
+              <rect x="22" y="70" width="56" height="6" fill="#b3791f"/>
+              <!-- fruits -->
+              <circle cx="34" cy="82" r="5" fill="#c7502d"/>
+              <circle cx="46" cy="80" r="5" fill="#2f7a5f"/>
+              <circle cx="58" cy="82" r="5" fill="#e6a23b"/>
+              <circle cx="68" cy="81" r="5" fill="#c7502d"/>
+              <!-- sign -->
+              <rect x="38" y="26" width="24" height="12" rx="2" fill="#fff" stroke="#1a1915"/>
+              <text x="50" y="35" text-anchor="middle" font-size="7" font-family="monospace">ตลาด</text>
+            </svg>
+          </div>
+          <div class="check">✓</div>
+        </div>
+        <div class="meta">
+          <p class="title">Isometric</p>
+          <p class="desc">ภาพวาด 3D มุมเฉียง สนุก สดใส เหมือนตลาดนัด</p>
+        </div>
+      </div>
+
+      <!-- REALISTIC -->
+      <div class="card" data-value="Realistic 3D renders">
+        <div class="preview render-bg">
+          <div class="phone" style="background:#f6eedd">
+            <div class="notch"></div>
+            <div class="render-product"></div>
+            <div class="render-plate"></div>
+            <div style="position:absolute;bottom:8%;left:8%;right:8%;height:14%;background:#fff;border-radius:10px;box-shadow:0 4px 10px -4px rgba(0,0,0,.2)"></div>
+          </div>
+          <div class="check">✓</div>
+        </div>
+        <div class="meta">
+          <p class="title">Realistic 3D Render</p>
+          <p class="desc">เรนเดอร์สินค้าเสมือนจริง พรีเมียม โฟกัสที่ของ</p>
+        </div>
+      </div>
+
+      <!-- MIX -->
+      <div class="card" data-value="Mix — explore several">
+        <div class="preview" style="background:linear-gradient(135deg,#ffd6b8,#b8d6ff,#e6e7ee,#fff4c2)">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:36px;color:#1a1915">?</div>
+          <div class="check">✓</div>
+        </div>
+        <div class="meta">
+          <p class="title">ลองหลายสไตล์</p>
+          <p class="desc">ให้ออกแบบ 2–3 ทิศทางเปรียบเทียบกัน</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== COLOR MOOD ========== -->
+  <div class="section">
+    <h2>2 · Color Mood</h2>
+    <p class="hint">โทนสีหลักของแอป</p>
+    <div class="grid g4" data-group="color_mood">
+
+      <div class="card mood" data-value="Warm Thai Market">
+        <div class="preview" style="background:#f6eedd">
+          <div class="phone" style="background:#fbf1df">
+            <div class="notch"></div>
+            <div style="position:absolute;top:22px;left:8px;right:8px;height:30%;background:#c7502d;border-radius:12px"></div>
+            <div style="position:absolute;top:calc(22px + 34%);left:8px;right:8px;height:20%;background:#2f7a5f;border-radius:12px"></div>
+            <div style="position:absolute;top:calc(22px + 56%);left:8px;right:8px;height:18%;background:#e6a23b;border-radius:12px"></div>
+          </div>
+          <div class="check">✓</div>
+        </div>
+        <div class="swatches"><div class="sw" style="background:#c7502d"></div><div class="sw" style="background:#e6a23b"></div><div class="sw" style="background:#2f7a5f"></div><div class="sw" style="background:#fbf1df"></div></div>
+        <div class="meta"><p class="title">ตลาดไทยอบอุ่น</p><p class="desc">ดินเผา มะม่วง หยก ครีม</p></div>
+      </div>
+
+      <div class="card mood" data-value="Fresh & Organic">
+        <div class="preview" style="background:#eef3e8">
+          <div class="phone" style="background:#f7f3e8">
+            <div class="notch"></div>
+            <div style="position:absolute;top:22px;left:8px;right:8px;height:30%;background:#4a6b3a;border-radius:12px"></div>
+            <div style="position:absolute;top:calc(22px + 34%);left:8px;right:8px;height:20%;background:#d4b48a;border-radius:12px"></div>
+            <div style="position:absolute;top:calc(22px + 56%);left:8px;right:8px;height:18%;background:#8aaa6e;border-radius:12px"></div>
+          </div>
+          <div class="check">✓</div>
+        </div>
+        <div class="swatches"><div class="sw" style="background:#4a6b3a"></div><div class="sw" style="background:#8aaa6e"></div><div class="sw" style="background:#d4b48a"></div><div class="sw" style="background:#f7f3e8"></div></div>
+        <div class="meta"><p class="title">สดใหม่ออร์แกนิก</p><p class="desc">เขียว ครีม ดินธรรมชาติ</p></div>
+      </div>
+
+      <div class="card mood" data-value="Vibrant Pop">
+        <div class="preview" style="background:#fff0d6">
+          <div class="phone" style="background:#fff">
+            <div class="notch"></div>
+            <div style="position:absolute;top:22px;left:8px;right:8px;height:30%;background:#ff4d6d;border-radius:12px"></div>
+            <div style="position:absolute;top:calc(22px + 34%);left:8px;right:8px;height:20%;background:#5fc3e4;border-radius:12px"></div>
+            <div style="position:absolute;top:calc(22px + 56%);left:8px;right:8px;height:18%;background:#ffc844;border-radius:12px"></div>
+          </div>
+          <div class="check">✓</div>
+        </div>
+        <div class="swatches"><div class="sw" style="background:#ff4d6d"></div><div class="sw" style="background:#ffc844"></div><div class="sw" style="background:#5fc3e4"></div><div class="sw" style="background:#fff"></div></div>
+        <div class="meta"><p class="title">สดใสสนุก</p><p class="desc">สีฉูดฉาด ป็อป เด็กๆ วัยรุ่น</p></div>
+      </div>
+
+      <div class="card mood" data-value="Premium Minimal">
+        <div class="preview" style="background:#f1ede4">
+          <div class="phone" style="background:#faf7f0">
+            <div class="notch"></div>
+            <div style="position:absolute;top:22px;left:8px;right:8px;height:30%;background:#1a1915;border-radius:12px"></div>
+            <div style="position:absolute;top:calc(22px + 34%);left:8px;right:8px;height:20%;background:#e8e1d0;border-radius:12px"></div>
+            <div style="position:absolute;top:calc(22px + 56%);left:8px;right:8px;height:18%;background:#c7502d;border-radius:12px"></div>
+          </div>
+          <div class="check">✓</div>
+        </div>
+        <div class="swatches"><div class="sw" style="background:#faf7f0"></div><div class="sw" style="background:#e8e1d0"></div><div class="sw" style="background:#1a1915"></div><div class="sw" style="background:#c7502d"></div></div>
+        <div class="meta"><p class="title">พรีเมียม มินิมอล</p><p class="desc">ครีม ดำ แต้มสีเดียว</p></div>
+      </div>
+
+      <div class="card mood" data-value="Night Market Neon">
+        <div class="preview" style="background:#0f0a1e">
+          <div class="phone" style="background:#1a1033">
+            <div class="notch"></div>
+            <div style="position:absolute;top:22px;left:8px;right:8px;height:30%;background:#ff2e9a;border-radius:12px;box-shadow:0 0 16px #ff2e9a"></div>
+            <div style="position:absolute;top:calc(22px + 34%);left:8px;right:8px;height:20%;background:#00e0c7;border-radius:12px;box-shadow:0 0 12px #00e0c7"></div>
+            <div style="position:absolute;top:calc(22px + 56%);left:8px;right:8px;height:18%;background:#ffd400;border-radius:12px;box-shadow:0 0 12px #ffd400"></div>
+          </div>
+          <div class="check">✓</div>
+        </div>
+        <div class="swatches"><div class="sw" style="background:#ff2e9a"></div><div class="sw" style="background:#00e0c7"></div><div class="sw" style="background:#ffd400"></div><div class="sw" style="background:#0f0a1e"></div></div>
+        <div class="meta"><p class="title">ตลาดนัดกลางคืน</p><p class="desc">นีออน มืด สดใส</p></div>
+      </div>
+
+      <div class="card mood" data-value="Decide for me">
+        <div class="preview" style="background:linear-gradient(135deg,#c7502d,#8aaa6e,#5fc3e4,#1a1915)">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:32px;color:#fff">?</div>
+          <div class="check">✓</div>
+        </div>
+        <div class="meta"><p class="title">ตัดสินใจให้</p><p class="desc">เลือกสีที่เหมาะสมให้</p></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== AUDIENCE ========== -->
+  <div class="section">
+    <h2>3 · ผู้ใช้หลัก</h2>
+    <p class="hint">ใครจะใช้แอปนี้?</p>
+    <div class="pills" data-group="audience">
+      <button class="pill" data-value="Local neighborhood">ชุมชน / หมู่บ้าน</button>
+      <button class="pill" data-value="Thai street market">ตลาดนัดไทย</button>
+      <button class="pill" data-value="Farm to table">เกษตรกร / ฟาร์ม</button>
+      <button class="pill" data-value="Crafts & handmade">งานฝีมือ / แฮนด์เมด</button>
+      <button class="pill" data-value="Second-hand">มือสอง / วินเทจ</button>
+      <button class="pill" data-value="Mixed / general">ทั่วไป ผสมผสาน</button>
+      <button class="pill" data-value="Decide for me">ตัดสินใจให้</button>
+    </div>
+  </div>
+
+  <!-- ========== SCREENS ========== -->
+  <div class="section">
+    <h2>4 · หน้าจอที่อยากเห็น</h2>
+    <p class="hint">เลือกได้หลายหน้า (Wallet + Affiliate จะใส่ให้อัตโนมัติ)</p>
+    <div class="pills" data-group="screens" data-multi="true">
+      <button class="pill on" data-value="Home">หน้าแรก / Discover</button>
+      <button class="pill on" data-value="Product">รายละเอียดสินค้า</button>
+      <button class="pill on" data-value="Shop">ร้านค้า / โปรไฟล์ผู้ขาย</button>
+      <button class="pill" data-value="Cart">ตะกร้า / Checkout</button>
+      <button class="pill on" data-value="Wallet">Wallet</button>
+      <button class="pill on" data-value="Affiliate">Affiliate Dashboard</button>
+      <button class="pill" data-value="Chat">แชทกับผู้ขาย</button>
+      <button class="pill" data-value="Onboarding">Onboarding</button>
+      <button class="pill" data-value="Tracking">ติดตามออเดอร์</button>
+      <button class="pill" data-value="Profile">Profile</button>
+    </div>
+  </div>
+
+  <!-- ========== WALLET ========== -->
+  <div class="section">
+    <h2>5 · ฟีเจอร์ Wallet</h2>
+    <div class="pills" data-group="wallet" data-multi="true">
+      <button class="pill on" data-value="Top-up PromptPay">เติมเงิน (QR / PromptPay)</button>
+      <button class="pill on" data-value="Cashback coins">Coins / Cashback</button>
+      <button class="pill on" data-value="Withdraw">ถอนเข้าบัญชี</button>
+      <button class="pill" data-value="Send to friend">โอนให้เพื่อน</button>
+      <button class="pill on" data-value="History">ประวัติการทำรายการ</button>
+      <button class="pill" data-value="Analytics">วิเคราะห์การใช้จ่าย</button>
+    </div>
+  </div>
+
+  <!-- ========== AFFILIATE ========== -->
+  <div class="section">
+    <h2>6 · รูปแบบ Affiliate</h2>
+    <div class="pills" data-group="affiliate">
+      <button class="pill" data-value="Product commission">แชร์ลิงก์สินค้า รับ % ต่อการขาย</button>
+      <button class="pill" data-value="Invite friends">ชวนเพื่อน รับ Coins</button>
+      <button class="pill" data-value="Tiered">ขั้น Bronze / Silver / Gold</button>
+      <button class="pill on" data-value="Mix all">ผสมทั้งหมด</button>
+      <button class="pill" data-value="Decide for me">ตัดสินใจให้</button>
+    </div>
+  </div>
+
+  <!-- ========== 3D INTENSITY ========== -->
+  <div class="section">
+    <h2>7 · ความเข้มของ 3D</h2>
+    <p class="hint">0 = แบน/มินิมอล, 10 = 3D จัดเต็มทุกที่</p>
+    <div class="slider-row">
+      <input type="range" id="three_d" min="0" max="10" step="1" value="7" />
+      <output for="three_d">7</output>
+    </div>
+  </div>
+
+  <!-- ========== LANGUAGE & DEVICE ========== -->
+  <div class="section grid g2" style="gap:32px">
+    <div>
+      <h2>8 · ภาษา</h2>
+      <div class="pills" data-group="language">
+        <button class="pill on" data-value="Thai">ไทย</button>
+        <button class="pill" data-value="English">English</button>
+        <button class="pill" data-value="Thai + English">ไทย + EN</button>
+      </div>
+    </div>
+    <div>
+      <h2>9 · อุปกรณ์</h2>
+      <div class="pills" data-group="device">
+        <button class="pill on" data-value="iPhone">iPhone</button>
+        <button class="pill" data-value="Android">Android</button>
+        <button class="pill" data-value="Both">ทั้งสอง</button>
+        <button class="pill" data-value="No frame">ไม่ต้องมีกรอบ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== NOVELTY ========== -->
+  <div class="section">
+    <h2>10 · ความแปลกใหม่ของ UX</h2>
+    <div class="pills" data-group="novelty">
+      <button class="pill" data-value="Conventional">ใช้ pattern ทั่วไป ใช้งานง่าย</button>
+      <button class="pill on" data-value="Balanced">ผสม — คุ้นเคย + ใหม่บางส่วน</button>
+      <button class="pill" data-value="Bold">กล้า ทดลอง ใหม่</button>
+    </div>
+  </div>
+
+  <!-- ========== OTHER ========== -->
+  <div class="section">
+    <h2>11 · อื่น ๆ</h2>
+    <p class="hint">ชื่อแบรนด์ อ้างอิง หรือสิ่งที่อยากได้เป็นพิเศษ</p>
+    <textarea id="other" placeholder="เช่น ชื่อ 'บ้านตลาด', อยากให้มี live-stream ขายของ, อ้างอิงจาก Shopee / Etsy ..."></textarea>
+  </div>
+
+  <!-- SENT STATE -->
+  <div class="sent" id="sent">
+    <h1>ได้แล้ว 👍</h1>
+    <p class="lede" style="margin:0 auto">เริ่มออกแบบตามที่คุณเลือกได้เลย รอสักครู่...</p>
+  </div>
+
+</div>
+
+<div class="dock" id="dock">
+  <span class="count" id="count">0 choices</span>
+  <button id="submit">ส่งคำตอบ →</button>
+</div>
+
+<script>
+  const state = {};
+  // Handle card grids
+  document.querySelectorAll('[data-group]').forEach(group=>{
+    const key = group.dataset.group;
+    const multi = group.dataset.multi === 'true';
+    state[key] = multi ? [] : null;
+
+    const items = group.querySelectorAll('.card, .pill');
+    // init "on" defaults
+    items.forEach(it => {
+      if (it.classList.contains('on')) {
+        const v = it.dataset.value;
+        if (multi) state[key].push(v); else state[key] = v;
+      }
+    });
+
+    items.forEach(it=>{
+      it.addEventListener('click', ()=>{
+        const v = it.dataset.value;
+        if (multi){
+          if (state[key].includes(v)){
+            state[key] = state[key].filter(x=>x!==v);
+            it.classList.remove('on','selected');
+          } else {
+            state[key].push(v);
+            it.classList.add('on','selected');
+          }
+        } else {
+          items.forEach(x=>x.classList.remove('on','selected'));
+          it.classList.add('on','selected');
+          state[key] = v;
+        }
+        updateCount();
+      });
+      // reflect initial
+      if (it.classList.contains('on')) it.classList.add('selected');
+    });
+  });
+
+  // slider
+  const slider = document.getElementById('three_d');
+  const out = slider.nextElementSibling;
+  state.three_d = +slider.value;
+  slider.addEventListener('input', ()=>{
+    out.value = slider.value;
+    state.three_d = +slider.value;
+  });
+
+  // other
+  document.getElementById('other').addEventListener('input', e=>{
+    state.other = e.target.value;
+  });
+
+  function updateCount(){
+    let n=0;
+    Object.values(state).forEach(v=>{
+      if (Array.isArray(v)) n+=v.length;
+      else if (v!=null && v!=='') n+=1;
+    });
+    document.getElementById('count').textContent = n + ' choices';
+  }
+  updateCount();
+
+  document.getElementById('submit').addEventListener('click', ()=>{
+    // persist so user can refresh and still have it
+    try { localStorage.setItem('market_picker', JSON.stringify(state)); } catch(e){}
+    document.body.classList.add('done');
+    document.getElementById('sent').classList.add('on');
+    // expose for inspection
+    window.__answers = state;
+    console.log('ANSWERS', state);
+  });
+
+  // restore
+  try {
+    const saved = JSON.parse(localStorage.getItem('market_picker')||'null');
+    if (saved && typeof saved === 'object') {
+      // no-op UI restore, just log
+      console.log('previously saved', saved);
+    }
+  } catch(e){}
+</script>
+</body>
+</html>

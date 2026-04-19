@@ -1,0 +1,103 @@
+name: thaipromptapp
+description: "Thaiprompt — ตลาดชุมชนไทย · Community Marketplace"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.4
+  flutter: ">=3.38.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # State management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # Routing
+  go_router: ^14.6.2
+
+  # HTTP + API
+  dio: ^5.7.0
+  dio_smart_retry: ^7.0.1
+  pretty_dio_logger: ^1.4.0
+
+  # Models + codegen
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+
+  # Storage
+  flutter_secure_storage: ^9.2.2
+  shared_preferences: ^2.3.3
+  drift: ^2.22.1
+  sqlite3_flutter_libs: ^0.5.27
+  path_provider: ^2.1.5
+
+  # UI
+  google_fonts: ^6.2.1
+  cached_network_image: ^3.4.1
+  flutter_animate: ^4.5.2
+  shimmer: ^3.0.0
+  flutter_svg: ^2.0.16
+
+  # Charts
+  fl_chart: ^0.69.2
+
+  # QR + camera
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^6.0.2
+
+  # Maps
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+
+  # Device + system
+  device_info_plus: ^11.2.0
+  package_info_plus: ^8.1.1
+  permission_handler: ^11.3.1
+  connectivity_plus: ^6.1.0
+  geolocator: ^13.0.2
+
+  # LINE SDK (social login)
+  flutter_line_sdk: ^2.7.2
+
+  # On-device AI (Gemma 4 + Gemma 3 fallback)
+  # flutter_gemma: ^0.8.0   # uncomment once Gemma 4 support lands; using http stub first
+
+  # TTS (Piper via sherpa-onnx)
+  # sherpa_onnx: ^1.12.0   # uncomment + wire native libs in Phase 5
+
+  # Utilities
+  collection: ^1.19.0
+  intl: ^0.20.1
+  logger: ^2.5.0
+  equatable: ^2.0.7
+  uuid: ^4.5.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+  # Codegen
+  build_runner: ^2.4.14
+  freezed: ^2.5.7
+  json_serializable: ^6.9.0
+  riverpod_generator: ^2.6.3
+  drift_dev: ^2.22.1
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/ai/                # Gemma model manifests
+    - assets/tts/               # Piper voice manifest
+
+  # Thai + display fonts loaded via google_fonts at runtime.
+  # Custom fonts (if offline-required) go here.

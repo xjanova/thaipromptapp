@@ -1,0 +1,119 @@
+/* Thaiprompt — Design Tokens (Claymorphism) */
+:root{
+  --pink:#FF3E6C;
+  --mint:#00D4B4;
+  --mango:#FFC94D;
+  --purple:#6B4BFF;
+  --sky:#5EC9FF;
+  --ink:#2A1F3D;
+  --ink-2:#4B3E66;
+  --muted:#8A7FA3;
+  --paper:#FFF8EE;
+  --paper-2:#FFEFD6;
+  --card:#FFFFFF;
+  --line:transparent;
+  /* Clay shadows: outer soft drop + inner highlight + inner dark edge */
+  --clay: 0 10px 20px -6px rgba(70,42,92,.22), 0 2px 4px rgba(70,42,92,.08),
+          inset 0 -4px 6px rgba(70,42,92,.10), inset 0 3px 3px rgba(255,255,255,.85);
+  --clay-sm: 0 6px 12px -4px rgba(70,42,92,.18),
+             inset 0 -3px 4px rgba(70,42,92,.10), inset 0 2px 2px rgba(255,255,255,.85);
+  --clay-lg: 0 22px 40px -12px rgba(70,42,92,.28), 0 4px 8px rgba(70,42,92,.10),
+             inset 0 -6px 10px rgba(70,42,92,.12), inset 0 4px 5px rgba(255,255,255,.9);
+  /* Back-compat so existing inline shadows still look ok */
+  --lift: var(--clay);
+  --lift-sm: var(--clay-sm);
+  --lift-lg: var(--clay-lg);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:'IBM Plex Sans Thai','Space Grotesk',system-ui,sans-serif;
+  background:#F1EADE;
+  color:var(--ink);
+}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.display{font-family:'Space Grotesk','IBM Plex Sans Thai',sans-serif;letter-spacing:-.02em;font-weight:700}
+
+/* Reusable "chunk" card style — CLAY */
+.chunk{
+  background:var(--card);
+  border:0;
+  border-radius:26px;
+  box-shadow:var(--clay);
+}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 12px;border-radius:999px;
+  border:0;
+  font-size:12px;font-weight:600;background:#fff;
+  box-shadow:var(--clay-sm);
+}
+.btn{
+  font-family:inherit;cursor:pointer;
+  border:0;
+  background:var(--ink);color:#fff;
+  border-radius:999px;padding:12px 20px;
+  font-weight:700;font-size:14px;
+  box-shadow:var(--clay-sm);
+  transition:transform .1s ease, box-shadow .1s ease;
+}
+.btn:active{transform:translateY(1px) scale(.98);
+  box-shadow:inset 0 3px 6px rgba(0,0,0,.2), inset 0 -1px 2px rgba(255,255,255,.15)}
+.btn.pink{background:var(--pink)}
+.btn.mint{background:var(--mint);color:var(--ink)}
+.btn.mango{background:var(--mango);color:var(--ink)}
+.btn.purple{background:var(--purple)}
+.btn.ghost{background:#fff;color:var(--ink)}
+
+/* Dot grid background */
+.dots{
+  background-image:radial-gradient(rgba(14,11,31,.18) 1px, transparent 1px);
+  background-size:14px 14px;
+}
+
+/* Grain texture */
+.grain{position:relative}
+.grain::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .08 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  mix-blend-mode:multiply;opacity:.5;border-radius:inherit;
+}
+
+/* Scrollbars in phone */
+.phone-scroll::-webkit-scrollbar{width:0;display:none}
+.phone-scroll{scrollbar-width:none}
+
+/* Shared keyframes */
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes spin-slow{to{transform:rotate(360deg)}}
+@keyframes shine{0%{transform:translateX(-120%) skewX(-20deg)}100%{transform:translateX(220%) skewX(-20deg)}}
+@keyframes pulse-ring{0%{transform:scale(.9);opacity:.7}100%{transform:scale(1.6);opacity:0}}
+
+.float{animation:float 3.5s ease-in-out infinite}
+.spin-slow{animation:spin-slow 22s linear infinite}
+
+/* Marquee */
+@keyframes mq{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.marquee{display:flex;gap:20px;animation:mq 24s linear infinite;will-change:transform}
+
+/* Tabs */
+.seg{
+  display:inline-flex;background:#fff;border:0;
+  border-radius:999px;padding:4px;gap:2px;
+  box-shadow:var(--clay-sm);
+}
+.seg button{
+  border:0;background:transparent;padding:8px 14px;border-radius:999px;
+  font:600 13px/1 'IBM Plex Sans Thai',sans-serif;cursor:pointer;color:var(--ink);
+}
+.seg button.on{background:var(--ink);color:#fff}
+
+/* Phones row */
+.stage{
+  padding:48px 24px 140px;min-height:100vh;
+  background:
+    radial-gradient(80% 40% at 20% 0%, #FFD6E4 0%, transparent 60%),
+    radial-gradient(60% 40% at 90% 10%, #D6F6EF 0%, transparent 60%),
+    radial-gradient(40% 30% at 50% 100%, #FFE8BF 0%, transparent 60%),
+    #F1EADE;
+}
