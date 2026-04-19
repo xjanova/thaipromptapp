@@ -99,18 +99,30 @@ class ReplySanitizer {
     'ให้ผม': 'ให้หนู',
   };
 
+  /// Process a streamed chunk.
+  ///
+  /// Strategy:
+  ///   1. Append chunk to carry.
+  ///   2. Apply replacements to the FULL combined string — a match that
+  ///      straddles a previous chunk boundary still catches, and a match
+  ///      that straddles the emit / carry split below cannot be missed
+  ///      because we rewrote before splitting.
+  ///   3. Emit the prefix. Keep `boundary` chars in carry so the next
+  ///      chunk can complete a match that just started.
   String process(String chunk) {
-    final combined = _carry + chunk;
-    // Safe to emit up to the last N chars where N is the longest replacement
-    // key length (7 for "นะครับ" in chars).
-    const boundary = 8;
-    if (combined.length <= boundary) {
-      _carry = combined;
+    _carry += chunk;
+    const boundary = 8; // ≥ length of longest replacement key
+    if (_carry.length <= boundary) return '';
+
+    final applied = _apply(_carry);
+    final emitLen = applied.length - boundary;
+    if (emitLen <= 0) {
+      _carry = applied;
       return '';
     }
-    final emit = combined.substring(0, combined.length - boundary);
-    _carry = combined.substring(combined.length - boundary);
-    return _apply(emit);
+    final emit = applied.substring(0, emitLen);
+    _carry = applied.substring(emitLen);
+    return emit;
   }
 
   String flush() {
