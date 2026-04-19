@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-04-19
+
+### เพิ่ม — น้องหญิง AI + เสียง
+- **AI น้องหญิง** พร้อมใช้งาน · แตะ "น้องหญิง" ที่มุมขวาล่างของหน้าแรกเพื่อแชทได้เลยค่ะ
+- **เสียงน้องหญิง** (หญิงไทย) · แตะ "ฟังเสียง" ใต้คำตอบแต่ละบับเบิลเพื่อให้น้องอ่านออกเสียง (ไม่อ่านเองอัตโนมัติ)
+- **หน้าตั้งค่าใหม่** (เมนู → ตั้งค่า) · ดาวน์โหลดโมเดลน้องหญิง (Gemma) กับเสียงออฟไลน์ได้ตามต้องการ · มีแถบโปรเกรสชัดเจนทุกขั้นตอน
+
+### ปลอดภัย + บุคลิก
+- บังคับ persona น้องหญิงเป็นผู้หญิงเด็ดขาด · ทั้ง system prompt และ sanitizer ฝั่ง client (`ครับ→ค่ะ`, `ผม→หนู`)
+- ลบเสียงผู้ชายออกทั้งหมดจาก TTS · server-side enforced
+
+### ภายใน
+- Flutter 3.41.7 / Dart 3.11.5 · target Android 24+ / iOS 16+
+- `flutter_gemma ^0.13.5` (on-device Gemma 4 / 3 4B / 3 1B) · `sherpa_onnx ^1.12.39` (Piper offline) · `just_audio ^0.9.42`
+- โมเดล AI และเสียงออฟไลน์ **ไม่ถูกฝังใน APK** · ดาวน์โหลดจากหน้าตั้งค่าเมื่อต้องการ
+- TtsRouter: Gemini cloud เป็นหลัก · auto-fallback → Piper offline เมื่อโควต้าฟรีหมด (429/403) หรือไม่มีเน็ต
+
 ## [1.0.0] - 2026-04-19
 
 ### เพิ่ม
@@ -35,5 +52,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Riverpod 2 · go_router · dio + Sanctum interceptor · drift · sherpa-onnx
 - CI/CD: GitHub Actions สร้าง APK (universal + split-per-abi) + AAB ทุก tag `v*.*.*`
 
-[Unreleased]: https://github.com/xjanova/thaipromptapp/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/xjanova/thaipromptapp/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.1
 [1.0.0]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.0
