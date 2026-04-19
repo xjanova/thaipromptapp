@@ -18,7 +18,7 @@ permissions:
   contents: write  # required for softprops/action-gh-release
 
 env:
-  FLUTTER_VERSION: '3.38.5'
+  FLUTTER_VERSION: '3.41.7'
   JAVA_VERSION: '17'
 
 jobs:

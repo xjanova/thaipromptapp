@@ -140,16 +140,21 @@ class _NongYingChatPageState extends ConsumerState<NongYingChatPage> {
   }
 
   Future<void> _maybeSpeakLast() async {
-    final tts = ref.read(ttsServiceProvider);
-    final last = _history.lastWhere(
-      (t) => t.role == ChatRole.assistant,
-      orElse: () => const ChatTurn(role: ChatRole.assistant, text: ''),
-    );
-    if (last.text.isEmpty) return;
-    // TTS is off by default until Phase 5.2 wires up Piper. Show a tap-to-play
-    // button on the last bubble instead of auto-speaking, to conserve data.
-    // (Hook kept here so subclasses/overrides can opt in.)
-    if (!tts.isReady) return;
+    // Tap-to-play instead of auto-speaking — saves bandwidth + respects
+    // users in silent environments. See [_speakText] for the tap handler.
+  }
+
+  Future<void> _speakText(String text) async {
+    try {
+      final tts = await ref.read(ttsServiceProvider.future);
+      if (!tts.isReady) return;
+      await tts.speak(text);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('พูดไม่ได้ค่ะ · $e')),
+      );
+    }
   }
 
   void _scrollToBottom() {
@@ -175,7 +180,8 @@ class _NongYingChatPageState extends ConsumerState<NongYingChatPage> {
                 controller: _scrollCtrl,
                 padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
                 children: [
-                  for (final turn in _history) _Bubble(turn: turn),
+                  for (final turn in _history)
+                    _Bubble(turn: turn, onSpeak: turn.role == ChatRole.assistant ? _speakText : null),
                   if (_pendingReply.isNotEmpty)
                     _Bubble(turn: ChatTurn(role: ChatRole.assistant, text: _pendingReply)),
                   if (_streaming && _pendingReply.isEmpty) const _TypingIndicator(),
@@ -239,14 +245,17 @@ class _Header extends StatelessWidget implements PreferredSizeWidget {
 }
 
 class _Bubble extends StatelessWidget {
-  const _Bubble({required this.turn});
+  const _Bubble({required this.turn, this.onSpeak});
   final ChatTurn turn;
+  final ValueChanged<String>? onSpeak;
 
   @override
   Widget build(BuildContext context) {
     final isMe = turn.role == ChatRole.user;
     final bg = isMe ? TpColors.pink : TpColors.card;
     final fg = isMe ? Colors.white : TpColors.ink;
+    final showSpeak = !isMe && onSpeak != null && turn.text.isNotEmpty;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Align(
@@ -255,11 +264,33 @@ class _Bubble extends StatelessWidget {
           constraints: BoxConstraints(
             maxWidth: MediaQuery.of(context).size.width * 0.82,
           ),
-          child: ClayCard(
-            color: bg,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            shadow: ClayShadow.small,
-            child: Text(turn.text, style: TpText.bodySm.copyWith(color: fg, height: 1.45)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClayCard(
+                color: bg,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                shadow: ClayShadow.small,
+                child: Text(turn.text, style: TpText.bodySm.copyWith(color: fg, height: 1.45)),
+              ),
+              if (showSpeak)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, left: 6),
+                  child: GestureDetector(
+                    onTap: () => onSpeak!(turn.text),
+                    behavior: HitTestBehavior.opaque,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.volume_up_rounded, size: 14, color: TpColors.muted),
+                        const SizedBox(width: 4),
+                        Text('ฟังเสียง', style: TpText.bodyXs.copyWith(color: TpColors.muted)),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),

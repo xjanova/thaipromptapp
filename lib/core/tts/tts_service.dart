@@ -3,19 +3,20 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Text-to-Speech surface for น้องหญิง voice output.
+import '../api/api_client.dart';
+import '../remote_config/feature_flags.dart';
+import 'gemini_tts_service.dart';
+
+/// Text-to-speech for น้องหญิง's voice.
 ///
-/// Target engine: Piper (via sherpa-onnx-flutter), offline, voice
-/// `th_TH-vaja-medium` (NECTEC) — bundled in `assets/tts/` (~60 MB).
-/// See ARCHITECTURE.md §6.
+/// Engines:
+///   • [GeminiTtsService] — online, Gemini 3.1 Native Audio via backend
+///     `/v1/ai/tts`. Thai female voice "premwadee". Free-tier covers MVP.
+///   • [StubTtsService] — no-op fallback for dev or when TTS is disabled.
+///   • Piper/NECTEC (Phase 5.3) — offline engine via sherpa_onnx; same
+///     interface so swap is free.
 ///
-/// This file intentionally ships as a stub so we can compile and ship the
-/// current release. [speak] is a no-op today; it will light up once the native
-/// binding is added (tracked as Phase 5.2).
-///
-/// Keep the public surface minimal — UI code must not care which engine is
-/// behind. Swap implementations by passing a different concrete class to the
-/// Riverpod provider override in tests.
+/// UI code only holds a [TtsService]; concrete choice lives in the provider.
 abstract interface class TtsService {
   Future<void> initialize();
   Future<void> speak(String text);
@@ -23,9 +24,11 @@ abstract interface class TtsService {
   bool get isReady;
   bool get isSpeaking;
   Stream<bool> get speakingStream;
+  Future<void> dispose();
 }
 
-/// Stub implementation — no audio output, but API-compatible.
+/// Last-resort fallback — emits "speaking" for a plausible duration so UI
+/// feedback stays consistent even when no real engine is connected.
 class StubTtsService implements TtsService {
   final _speakingController = StreamController<bool>.broadcast();
   bool _speaking = false;
@@ -44,10 +47,12 @@ class StubTtsService implements TtsService {
 
   @override
   Future<void> speak(String text) async {
-    if (kDebugMode) debugPrint('[TTS stub] would speak: ${text.substring(0, text.length > 40 ? 40 : text.length)}...');
+    if (kDebugMode) {
+      debugPrint('[TTS stub] would speak: '
+          '${text.substring(0, text.length > 40 ? 40 : text.length)}...');
+    }
     _speaking = true;
     _speakingController.add(true);
-    // Pretend the voice takes ~200ms per 10 chars.
     final ms = 200 + text.length * 20;
     await Future<void>.delayed(Duration(milliseconds: ms.clamp(200, 5000)));
     _speaking = false;
@@ -60,12 +65,36 @@ class StubTtsService implements TtsService {
     _speaking = false;
     _speakingController.add(false);
   }
+
+  @override
+  Future<void> dispose() async {
+    await _speakingController.close();
+  }
 }
 
-final ttsServiceProvider = Provider<TtsService>((ref) {
-  final svc = StubTtsService();
-  // initialize() is sync-safe for the stub; real engines will do it in
-  // .create() and wrap the whole thing in a FutureProvider.
-  svc.initialize();
-  return svc;
+/// Resolves the best available engine once and caches it.
+///   • `tts_enabled` flag off → Stub
+///   • Gemini creation succeeds → Gemini
+///   • otherwise → Stub
+final ttsServiceProvider = FutureProvider<TtsService>((ref) async {
+  final on = ref.watch(flagProvider(FlagKeys.ttsEnabled));
+  // In debug we default TTS on; production waits for the remote flag.
+  if (!on && !kDebugMode) {
+    final stub = StubTtsService();
+    ref.onDispose(stub.dispose);
+    return stub;
+  }
+
+  try {
+    final api = await ref.watch(apiClientProvider.future);
+    final svc = GeminiTtsService(api);
+    await svc.initialize();
+    ref.onDispose(svc.dispose);
+    return svc;
+  } catch (e) {
+    if (kDebugMode) debugPrint('[TTS] Gemini init failed, stub fallback: $e');
+    final stub = StubTtsService();
+    ref.onDispose(stub.dispose);
+    return stub;
+  }
 });

@@ -9,6 +9,7 @@ import '../features/auth/register_page.dart';
 import '../features/cart/cart_page.dart';
 import '../features/chat/chat_page.dart';
 import '../features/home/home_page.dart';
+import '../features/nong_ying/install_model_page.dart';
 import '../features/nong_ying/nong_ying_fab.dart';
 import '../features/onboarding/onboarding_page.dart';
 import '../features/product/product_page.dart';
@@ -87,6 +88,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // AI น้องหญิง
       GoRoute(path: '/nong-ying', builder: (_, __) => const NongYingRouteBridge()),
+      GoRoute(path: '/nong-ying/install', builder: (_, __) => const InstallModelPage()),
     ],
     errorBuilder: (_, state) => Scaffold(
       body: Center(child: Text('ไม่พบเส้นทาง: ${state.uri}')),

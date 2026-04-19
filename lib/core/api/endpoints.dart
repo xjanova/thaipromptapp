@@ -73,6 +73,7 @@ class Api {
 
   // AI fallback (to add)
   static const aiChat = '/v1/ai/chat';
+  static const aiTts = '/v1/ai/tts';
 
   // Public
   static const settings = '/v1/settings';

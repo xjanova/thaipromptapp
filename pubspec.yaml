@@ -4,8 +4,8 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.10.4
-  flutter: ">=3.38.0"
+  sdk: ^3.11.0
+  flutter: ">=3.41.0"
 
 dependencies:
   flutter:
@@ -26,16 +26,15 @@ dependencies:
   dio_smart_retry: ^7.0.1
   pretty_dio_logger: ^1.4.0
 
-  # Models + codegen
-  freezed_annotation: ^2.4.4
-  json_annotation: ^4.9.0
-
   # Storage
   flutter_secure_storage: ^9.2.2
   shared_preferences: ^2.3.3
-  drift: ^2.22.1
-  sqlite3_flutter_libs: ^0.5.27
   path_provider: ^2.1.5
+  # Models: hand-written fromJson/Equatable for now (see lib/shared/models/).
+  # drift + freezed were dropped during Phase 5.2 because their build_runner
+  # chain pinned sqlite3 < 3.0 while flutter_gemma requires sqlite3 ^3.1.
+  # When we need codegen, revisit with `build_runner ^3`, `freezed ^3`,
+  # `drift ^2.32+` which have moved to sqlite3 ^3.x.
 
   # UI
   google_fonts: ^6.2.1
@@ -65,11 +64,12 @@ dependencies:
   # LINE SDK (social login)
   flutter_line_sdk: ^2.7.2
 
-  # On-device AI (Gemma 4 + Gemma 3 fallback)
-  # flutter_gemma: ^0.8.0   # uncomment once Gemma 4 support lands; using http stub first
+  # On-device AI — Gemma 4 primary, Gemma 3 1B fallback
+  # (flutter_gemma 0.13+ supports Gemma 4 E2B/E4B and Gemma3n)
+  flutter_gemma: ^0.13.5
 
-  # TTS (Piper via sherpa-onnx)
-  # sherpa_onnx: ^1.12.0   # uncomment + wire native libs in Phase 5
+  # TTS — Piper voice models via sherpa-onnx
+  sherpa_onnx: ^1.12.39
 
   # Utilities
   collection: ^1.19.0
@@ -84,17 +84,15 @@ dependencies:
   url_launcher: ^6.3.1
   flutter_markdown: ^0.7.5
 
+  # Audio playback for TTS output (Gemini TTS streams MP3 bytes)
+  just_audio: ^0.9.42
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-
-  # Codegen
-  build_runner: ^2.4.14
-  freezed: ^2.5.7
-  json_serializable: ^6.9.0
-  riverpod_generator: ^2.6.3
-  drift_dev: ^2.22.1
+  # Codegen toolchain is intentionally absent — see `dependencies` note on
+  # the freezed/drift removal. Re-introduce behind a build_runner ^3 upgrade.
 
 flutter:
   uses-material-design: true
