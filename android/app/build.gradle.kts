@@ -38,27 +38,32 @@ android {
 
     }
 
-    // ───────── ABI filtering — done via `splits.abi`, not `ndk.abiFilters`
+    // ───────── ABI filtering — arm64-v8a only ──────────────────────────────
     //
-    // `defaultConfig.ndk.abiFilters` only restricts NDK code that THIS
-    // module compiles. It does NOT filter AAR native libraries shipped by
-    // dependencies — and the bloat is exactly there: flutter_gemma's
-    // MediaPipe (~90 MB/ABI), sherpa_onnx (~40 MB/ABI), mobile_scanner
-    // (~10 MB/ABI), and just_audio's ExoPlayer all package .so for
-    // arm64-v8a + armeabi-v7a + x86_64 by default.
+    // We need TWO knobs aligned to the same single ABI; setting only one
+    // either has no effect (ndk.abiFilters alone doesn't filter AAR libs)
+    // or produces a Gradle conflict (splits.abi alone clashes with
+    // Flutter's auto-injected ndk.abiFilters that lists all 3 default
+    // platforms). Both pointing at arm64-v8a → no conflict + AAR native
+    // libs from flutter_gemma (MediaPipe ~90 MB/ABI), sherpa_onnx
+    // (~40 MB/ABI), mobile_scanner, and just_audio (ExoPlayer) get
+    // stripped to a single ABI at packaging.
     //
-    // `splits.abi` runs at packaging time and DOES filter dependency .so,
-    // so a single APK that contains only arm64 ABI emerges — ~180 MB
-    // instead of ~370 MB. minSdk = 24 (Android 7.0+) is effectively all
-    // 64-bit ARM in our market, so dropping the other ABIs is safe.
-    // To re-introduce an ABI later, add `include("armeabi-v7a")` or
-    // `include("x86_64")` to the block below.
+    // minSdk = 24 (Android 7.0+) is effectively all 64-bit ARM in TH 2026
+    // so dropping armeabi-v7a + x86_64 is safe. To re-introduce later,
+    // add the same ABI string to BOTH blocks below.
+    defaultConfig {
+        ndk {
+            abiFilters.clear()
+            abiFilters.add("arm64-v8a")
+        }
+    }
     splits {
         abi {
             isEnable = true
-            reset()                        // drop the default include list
+            reset()
             include("arm64-v8a")
-            isUniversalApk = false         // don't produce a fat APK alongside
+            isUniversalApk = false
         }
     }
 

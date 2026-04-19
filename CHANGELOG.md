@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.7] - 2026-04-19
+
+### แก้ — fix สมัครสมาชิกแสดง "ไม่มีสัญญาณอินเทอร์เน็ต" (server-side, no app update needed)
+- รากเหง้า: `.htaccess` ของ bare-domain ใช้ `[R=301,L]` · client (Dio + curl + browser) downgrade `POST` → `GET` ตาม legacy HTTP/1.1 → endpoint `/v1/register` คืน `405 Method Not Allowed` → app catch-all map เป็น `NetworkException("ไม่มีสัญญาณ...")`
+- แก้: เปลี่ยนเป็น `[R=308,L]` (Permanent Redirect ที่รักษา method) · POST/PUT/DELETE ส่ง body ครบผ่าน redirect → register ใช้งานได้ทันทีในแอพ v1.0.5 ที่ติดตั้งอยู่แล้ว
+- เปลี่ยนผ่าน Server Logs tinker (backup `.htaccess.bak.20260419_194942`)
+
+### แก้ — v1.0.6 build fail (`splits.abi` ขัดกับ Flutter auto-injected `ndk.abiFilters`)
+- v1.0.6 ใช้แค่ `splits.abi` แต่ Flutter Gradle plugin auto-inject `ndk.abiFilters = [armeabi-v7a, arm64-v8a, x86_64]` → conflict → build fail
+- v1.0.7 set ทั้ง `defaultConfig.ndk.abiFilters.clear() + add("arm64-v8a")` AND `splits.abi { include("arm64-v8a") }` ให้ตรงกัน · ไม่ขัดกัน + AAR libs ทั้งหลายถูก strip → คาด APK ~180 MB
+
+### Backend
+- `HANDOVER.md` updated · บอก lesson 308 vs 301 ครบ
+
 ## [1.0.6] - 2026-04-19
 
 ### แก้ — APK ยังใหญ่อยู่หลัง v1.0.5 (350 MB) เพราะ filter ผิดที่
@@ -148,7 +162,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Riverpod 2 · go_router · dio + Sanctum interceptor · drift · sherpa-onnx
 - CI/CD: GitHub Actions สร้าง APK (universal + split-per-abi) + AAB ทุก tag `v*.*.*`
 
-[Unreleased]: https://github.com/xjanova/thaipromptapp/compare/v1.0.6...HEAD
+[Unreleased]: https://github.com/xjanova/thaipromptapp/compare/v1.0.7...HEAD
+[1.0.7]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.7
 [1.0.6]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.6
 [1.0.5]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.5
 [1.0.4]: https://github.com/xjanova/thaipromptapp/releases/tag/v1.0.4
