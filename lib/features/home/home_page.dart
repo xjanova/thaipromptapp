@@ -16,6 +16,7 @@ import '../../shared/widgets/puff.dart';
 import '../../shared/widgets/puffy_button.dart';
 import '../../shared/widgets/section_header.dart';
 import '../../shared/widgets/version_badge.dart';
+import '../nong_ying/nong_ying_fab.dart';
 
 /// Port of `Home` in screens-a.jsx.
 class HomePage extends ConsumerWidget {
@@ -69,13 +70,9 @@ class HomePage extends ConsumerWidget {
                 onChange: (t) {
                   switch (t) {
                     case NavTab.wallet:
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Wallet · Phase 3')),
-                      );
+                      context.go('/wallet');
                     case NavTab.affiliate:
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Affiliate · Phase 3')),
-                      );
+                      context.go('/affiliate');
                     case NavTab.menu:
                     case NavTab.me:
                     case NavTab.home:
@@ -84,6 +81,7 @@ class HomePage extends ConsumerWidget {
                 },
               ),
             ),
+            const NongYingFab(context0: {'screen': 'home'}),
           ],
         ),
       ),

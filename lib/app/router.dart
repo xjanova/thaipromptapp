@@ -9,6 +9,7 @@ import '../features/auth/register_page.dart';
 import '../features/cart/cart_page.dart';
 import '../features/chat/chat_page.dart';
 import '../features/home/home_page.dart';
+import '../features/nong_ying/nong_ying_fab.dart';
 import '../features/onboarding/onboarding_page.dart';
 import '../features/product/product_page.dart';
 import '../features/shop/shop_page.dart';
@@ -83,6 +84,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/wallet/scan', builder: (_, __) => const QrScanPage()),
       GoRoute(path: '/wallet/withdraw', builder: (_, __) => const TopupPage()), // stub
       GoRoute(path: '/affiliate', builder: (_, __) => const AffiliatePage()),
+
+      // AI น้องหญิง
+      GoRoute(path: '/nong-ying', builder: (_, __) => const NongYingRouteBridge()),
     ],
     errorBuilder: (_, state) => Scaffold(
       body: Center(child: Text('ไม่พบเส้นทาง: ${state.uri}')),
