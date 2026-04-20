@@ -214,17 +214,15 @@ class _GemmaCardState extends ConsumerState<_GemmaCard> {
     if (_plan == null) return 'ตรวจหาโมเดลที่เหมาะกับเครื่อง...';
     if (!_plan!.isReady) return 'ยังไม่พร้อมให้ติดตั้ง · ใช้ cloud ได้';
     return switch (_plan!.kind) {
-      AiEngineKind.gemma4 => 'Gemma 4 · ตอบไว แม่น เหมาะกับเครื่องแรงๆ',
-      AiEngineKind.gemma3_4b => 'Gemma 3 4B · สมดุล ขนาดไม่ใหญ่',
-      AiEngineKind.gemma3_1b => 'Gemma 3 1B · เล็ก เร็ว',
+      AiEngineKind.gemma4_e4b => 'Gemma 4 E4B · ตอบไว แม่น เครื่องแรง ๆ',
+      AiEngineKind.gemma4_e2b => 'Gemma 4 E2B · สมดุลคุณภาพกับขนาด',
       _ => 'Cloud only',
     };
   }
 
   String _size(AiEngineKind k) => switch (k) {
-        AiEngineKind.gemma4 => '≈ 1.2 GB',
-        AiEngineKind.gemma3_4b => '≈ 800 MB',
-        AiEngineKind.gemma3_1b => '≈ 300 MB',
+        AiEngineKind.gemma4_e4b => '≈ 3.0 GB',
+        AiEngineKind.gemma4_e2b => '≈ 2.0 GB',
         _ => '',
       };
 }

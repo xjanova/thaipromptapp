@@ -59,49 +59,43 @@ class ModelManager {
     final info = await _deviceInfo.androidInfo;
     final sdk = info.version.sdkInt;
 
-    // Very rough heuristic tuned around Thai-market common devices (2023+).
-    // Refine once we have real telemetry post-launch.
+    // Gemma 4 E2B is 2 GB on disk, ~3 GB RAM at inference. SDK level is
+    // our proxy for RAM/CPU — flagship devices from SDK 34+ (Android 14+)
+    // can comfortably run E4B. Mid-range from SDK 29+ (Android 10+) get
+    // E2B. Anything older falls back to cloud (server AI pool).
     if (sdk >= 34) {
       return ModelTier(
-        engine: AiEngineKind.gemma4,
-        reason: 'Android $sdk ≥ 34',
+        engine: AiEngineKind.gemma4_e4b,
+        reason: 'Android $sdk ≥ 34 (flagship)',
       );
     }
-    if (sdk >= 31) {
+    if (sdk >= 29) {
       return ModelTier(
-        engine: AiEngineKind.gemma3_4b,
-        reason: 'Android $sdk (31-33)',
-      );
-    }
-    if (sdk >= 26) {
-      return ModelTier(
-        engine: AiEngineKind.gemma3_1b,
-        reason: 'Android $sdk (26-30)',
+        engine: AiEngineKind.gemma4_e2b,
+        reason: 'Android $sdk (29-33)',
       );
     }
     return ModelTier(
       engine: AiEngineKind.server,
-      reason: 'Android $sdk < 26 → server',
+      reason: 'Android $sdk < 29 → cloud',
     );
   }
 
   Future<ModelTier> _iosTier() async {
     final info = await _deviceInfo.iosInfo;
     final model = info.utsname.machine;
-    // iPhone 14 and above (iPhone15,*+) have plenty of RAM/Neural Engine for
-    // Gemma 4 (~4B quantised). Conservative fallback below.
+    // iPhone 15 / 16 / 17 — 8 GB RAM, Neural Engine 35+ TOPS → E4B OK.
+    // iPhone 13 / 14 — 6 GB → E2B.
+    // Older → cloud. (.task format for iOS is built by MediaPipe iOS too.)
     if (model.startsWith('iPhone15,') ||
         model.startsWith('iPhone16,') ||
         model.startsWith('iPhone17,')) {
-      return ModelTier(engine: AiEngineKind.gemma4, reason: 'iPhone $model');
+      return ModelTier(engine: AiEngineKind.gemma4_e4b, reason: 'iPhone $model');
     }
     if (model.startsWith('iPhone13,') || model.startsWith('iPhone14,')) {
-      return ModelTier(engine: AiEngineKind.gemma3_4b, reason: 'iPhone $model');
+      return ModelTier(engine: AiEngineKind.gemma4_e2b, reason: 'iPhone $model');
     }
-    if (model.startsWith('iPhone11,') || model.startsWith('iPhone12,')) {
-      return ModelTier(engine: AiEngineKind.gemma3_1b, reason: 'iPhone $model');
-    }
-    return ModelTier(engine: AiEngineKind.server, reason: 'iPhone $model → server');
+    return ModelTier(engine: AiEngineKind.server, reason: 'iPhone $model → cloud');
   }
 }
 

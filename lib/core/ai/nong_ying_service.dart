@@ -85,26 +85,22 @@ class NongYingService {
   }
 
   String _urlFor(AiEngineKind kind) => switch (kind) {
-        AiEngineKind.gemma4 => remoteConfig.string('ai_model_url_gemma4'),
-        AiEngineKind.gemma3_4b => remoteConfig.string('ai_model_url_gemma3_4b'),
-        AiEngineKind.gemma3_1b => remoteConfig.string('ai_model_url_gemma3_1b'),
+        AiEngineKind.gemma4_e4b => remoteConfig.string('ai_model_url_gemma4_e4b'),
+        AiEngineKind.gemma4_e2b => remoteConfig.string('ai_model_url_gemma4_e2b'),
         _ => '',
       };
 
   String _modelIdFor(AiEngineKind kind) => switch (kind) {
-        AiEngineKind.gemma4 => remoteConfig.string('ai_model_id_gemma4',
-            fallback: 'gemma-3n-E4B-it-int4.task'),
-        AiEngineKind.gemma3_4b => remoteConfig.string('ai_model_id_gemma3_4b',
-            fallback: 'gemma-3n-E2B-it-int4.task'),
-        AiEngineKind.gemma3_1b => remoteConfig.string('ai_model_id_gemma3_1b',
-            fallback: 'gemma-3-1b-it-int4.task'),
+        AiEngineKind.gemma4_e4b => remoteConfig.string('ai_model_id_gemma4_e4b',
+            fallback: 'gemma-4-E4B-it-web.task'),
+        AiEngineKind.gemma4_e2b => remoteConfig.string('ai_model_id_gemma4_e2b',
+            fallback: 'gemma-4-E2B-it-web.task'),
         _ => '',
       };
 
   int _maxTokensFor(AiEngineKind kind) => switch (kind) {
-        AiEngineKind.gemma4 => 4096,
-        AiEngineKind.gemma3_4b => 2048,
-        AiEngineKind.gemma3_1b => 1024,
+        AiEngineKind.gemma4_e4b => 4096,
+        AiEngineKind.gemma4_e2b => 2048,
         _ => 1024,
       };
 

@@ -18,12 +18,20 @@ class ChatTurn {
 enum ChatRole { user, assistant, system }
 
 /// Chosen backend. Surfaced so the UI can show "on-device" / "cloud" and
-/// attribute correctly ("Powered by Gemma").
+/// attribute correctly ("Powered by Gemma 4").
+///
+/// Note: earlier iterations carried `gemma4` / `gemma3_4b` / `gemma3_1b`
+/// which were actually Gemma 3n (nano) variants misnamed. v1.0.18 settled
+/// on real Gemma 4 E2B + E4B.
 enum AiEngineKind {
-  gemma4,
-  gemma3_4b,
-  gemma3_1b,
-  server, // Gemini Flash / Claude Haiku / OpenAI on the backend
+  /// Gemma 4 E2B — 2 B params · ~2 GB .task · default on-device tier
+  gemma4_e2b,
+  /// Gemma 4 E4B — 4 B params · ~3 GB .task · high-end devices
+  gemma4_e4b,
+  /// Cloud via AI pool · Gemini 2.5 Flash primary · auto-failover across
+  /// providers (Groq / Grok / OpenRouter / DeepSeek / Typhoon)
+  server,
+  /// Neither on-device nor cloud available
   unavailable,
 }
 

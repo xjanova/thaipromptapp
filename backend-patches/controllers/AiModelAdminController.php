@@ -33,22 +33,29 @@ use Illuminate\Support\Facades\DB;
  */
 class AiModelAdminController extends Controller
 {
-    /** Tier → { hf_url, filename }. Mirrors AiModelProxyController. */
+    /** Tier → { hf_url, filename }. Mirrors AiModelProxyController.
+     *
+     * Both entries pull from `litert-community/*` — Google's official
+     * MediaPipe-LiteRT mirror. Not gated (no license click-through),
+     * but HF still requires an auth token for download — we use
+     * HF_TOKEN from .env.
+     *
+     * `-web.task` is the MediaPipe bundle that flutter_gemma consumes
+     * (the `.litertlm` sibling files are for standalone LiteRT-LM and
+     * don't work with MediaPipe).
+     */
     private const TIER_MAP = [
-        'gemma4' => [
-            'hf_url'   => 'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
-            'filename' => 'gemma-3n-E4B-it-int4.task',
-            'label'    => 'Gemma 3n E4B (4B, high-end devices)',
+        'gemma4_e2b' => [
+            'hf_url'   => 'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it-web.task',
+            'filename' => 'gemma-4-E2B-it-web.task',
+            'label'    => 'Gemma 4 E2B (2B · default)',
+            'size_est' => '2.0 GB',
         ],
-        'gemma3_4b' => [
-            'hf_url'   => 'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
-            'filename' => 'gemma-3n-E2B-it-int4.task',
-            'label'    => 'Gemma 3n E2B (2B, mid-range)',
-        ],
-        'gemma3_1b' => [
-            'hf_url'   => 'https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/Gemma3-1B-IT_multi-prefill-seq_q4_ekv1280.task',
-            'filename' => 'Gemma3-1B-IT_multi-prefill-seq_q4_ekv1280.task',
-            'label'    => 'Gemma 3 1B (small, any device)',
+        'gemma4_e4b' => [
+            'hf_url'   => 'https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm/resolve/main/gemma-4-E4B-it-web.task',
+            'filename' => 'gemma-4-E4B-it-web.task',
+            'label'    => 'Gemma 4 E4B (4B · high-end devices)',
+            'size_est' => '3.0 GB',
         ],
     ];
 

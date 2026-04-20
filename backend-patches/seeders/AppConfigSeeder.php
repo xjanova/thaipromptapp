@@ -24,7 +24,7 @@ class AppConfigSeeder extends Seeder
             // -------- Remote config surfaced by lib/core/remote_config --------
             [
                 'key'         => 'ai_model_id_gemma4',
-                'value'       => 'gemma-3n-E4B-it-int4.task',
+                'value'       => 'gemma-4-E4B-it-web.task',
                 'value_type'  => 'string',
                 'description' => 'MediaPipe model filename for Gemma 4 E4B (tier: high)',
                 'is_public'   => true,
@@ -36,21 +36,21 @@ class AppConfigSeeder extends Seeder
             // a public mirror if distribution rights allow.
             [
                 'key'         => 'ai_model_url_gemma4',
-                'value'       => 'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
+                'value'       => 'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-4-E4B-it-web.task',
                 'value_type'  => 'string',
                 'description' => 'Direct URL for Gemma 4 E4B .task (requires HF token server-side if gated)',
                 'is_public'   => true,
             ],
             [
                 'key'         => 'ai_model_id_gemma3_4b',
-                'value'       => 'gemma-3n-E2B-it-int4.task',
+                'value'       => 'gemma-4-E2B-it-web.task',
                 'value_type'  => 'string',
                 'description' => 'MediaPipe filename for Gemma 3n E2B (tier: mid)',
                 'is_public'   => true,
             ],
             [
                 'key'         => 'ai_model_url_gemma3_4b',
-                'value'       => 'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
+                'value'       => 'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-4-E2B-it-web.task',
                 'value_type'  => 'string',
                 'description' => 'Direct URL for Gemma 3n E2B .task',
                 'is_public'   => true,

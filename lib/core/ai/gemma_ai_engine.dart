@@ -44,9 +44,8 @@ class GemmaAiEngine implements AiEngine {
 
   @override
   String get label => switch (kind) {
-        AiEngineKind.gemma4 => 'น้องหญิง · Gemma 4',
-        AiEngineKind.gemma3_4b => 'น้องหญิง · Gemma 3 4B',
-        AiEngineKind.gemma3_1b => 'น้องหญิง · Gemma 3 1B',
+        AiEngineKind.gemma4_e4b => 'น้องหญิง · Gemma 4 E4B',
+        AiEngineKind.gemma4_e2b => 'น้องหญิง · Gemma 4 E2B',
         _ => 'น้องหญิง',
       };
 

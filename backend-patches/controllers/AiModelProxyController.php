@@ -29,21 +29,17 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class AiModelProxyController extends Controller
 {
     /** Map of tier → upstream HF URL. Keep in sync with
-     *  `app_configs.ai_model_url_*` (the app reads those for the
-     *  proxy URL itself, not for the upstream URL).
+     *  AiModelAdminController::TIER_MAP and
+     *  `app_configs.ai_model_url_*`.
      */
     private const TIER_MAP = [
-        'gemma4' => [
-            'url'      => 'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
-            'filename' => 'gemma-3n-E4B-it-int4.task',
+        'gemma4_e2b' => [
+            'url'      => 'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it-web.task',
+            'filename' => 'gemma-4-E2B-it-web.task',
         ],
-        'gemma3_4b' => [
-            'url'      => 'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
-            'filename' => 'gemma-3n-E2B-it-int4.task',
-        ],
-        'gemma3_1b' => [
-            'url'      => 'https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/Gemma3-1B-IT_multi-prefill-seq_q4_ekv1280.task',
-            'filename' => 'Gemma3-1B-IT_multi-prefill-seq_q4_ekv1280.task',
+        'gemma4_e4b' => [
+            'url'      => 'https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm/resolve/main/gemma-4-E4B-it-web.task',
+            'filename' => 'gemma-4-E4B-it-web.task',
         ],
     ];
 

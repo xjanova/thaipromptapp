@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.18] - 2026-04-20
+
+### 🎯 **Gemma 4 E2B จริง + AI pool (แบบหมอดู) + น้องหญิงพูดได้แล้ว**
+
+ใช้ gemma-3n (nano) รุ่นเก่า/เล็กกว่าที่ผู้ใช้ต้องการ · v1.0.18 รื้อใหม่ทั้งหมด:
+
+### On-device: Gemma 4 ตัวจริง (ไม่ใช่ 3n/nano อีกต่อไป)
+- ค้นหาผ่าน Chrome MCP → พบที่ `litert-community/gemma-4-E{2,4}B-it-litert-lm`
+- **Gemma 4 E2B** (2 GB) — default สำหรับเครื่อง Android SDK ≥ 29 (Android 10+) · ส่วนใหญ่
+- **Gemma 4 E4B** (3 GB) — high-tier สำหรับ Android SDK ≥ 34 (Android 14+ flagship)
+- Ungated · ไม่ต้อง accept license · ใช้ HF token แบบ authorization เท่านั้น
+
+### AI pool integration (สำหรับ cloud fallback · แบบเดียวกับหมอดู/ดูดวง)
+- **`NongYingAIService`** (ใหม่) — เลียนแบบ `FortuneAIService::generateWithRetryAndFallback`
+  - Enumerate ทุก active API keys ใน `AiApiKeyPoolService` (priority desc, healthy first)
+  - ลอง keys ไปเรื่อย ๆ · **สลับทันทีเมื่อโดน 429** (รอ 1 วิ) · error อื่น รอ 2 วิ
+  - รองรับ 7 providers: Gemini, Groq, Grok, Qwen, OpenRouter, DeepSeek, Typhoon
+  - Record usage + errors กลับ pool (cost tracking · rate limit awareness)
+- **`AiBotProfile`** (table) เก็บ persona "น้องหญิง"
+  - id #4 · provider=google · model=gemini-2.5-flash (new model row #30)
+  - system_prompt พร้อม app map + deep-link convention · admin edit DB ได้ไม่ต้อง redeploy
+  - `app_configs.nong_ying_bot_profile_id = 4`
+- **`V1/AiChatApiController::chat()`** rewrite · ใช้ `NongYingAIService->chat()` · failover pool
+- Route `/v1/ai/chat` ทำเป็น public + `throttle:15,1` (per IP) เพื่อให้ guest ใช้ได้
+- **Live test**: Gemini 2.5 Flash ตอบใน 2.9s · persona ถูกต้อง (`ค่ะ/หนู` + deep-link chips)
+
+### Server hosting (รองรับ user ขอ: "ให้เว็บโหลด .task มาไว้")
+- Sync'd **gemma-4-E2B-it-web.task (2.00 GB)** ไป `public/ai-models/` · 82s download · sha256 verified
+- Admin API: `POST /v1/admin/ai/models/{tier}/sync` trigger ดาวน์โหลดจาก HF
+- Proxy: `/api/v1/ai/models/{tier}` → **302 redirect ไป Nginx direct** (zero PHP hot path)
+- `/info` endpoint รายงาน `source: local` เมื่อ file พร้อม ให้ client รู้ได้
+- Verified live: proxy → 302 → Nginx → Content-Length 2,003,697,664 ✓
+
+### App-side rewrite
+- `AiEngineKind` enum: drop `gemma4/gemma3_4b/gemma3_1b` · เพิ่ม `gemma4_e2b` + `gemma4_e4b`
+- `ModelManager` tier selection: Android SDK ≥ 34 → E4B · SDK ≥ 29 → E2B · else cloud
+- Remote config keys: `ai_model_url_gemma4_e{2,4}b` + `ai_model_id_gemma4_e{2,4}b`
+- UI labels + size estimates: 2.0 / 3.0 GB
+
+### HF token (server-side เท่านั้น)
+- User login HF → สร้าง fine-grained token ผ่าน Chrome MCP → inject ใน server `.env`
+- User **ไม่เคยเห็น token** ใน app · proxy จัดการทุกอย่างฝั่ง server
+- Permission: "Read access to contents of all public gated repos" · รองรับ Gemma 3 1B ถ้าจำเป็นในอนาคต
+
+### ล้างข้อมูลเก่า
+- ลบ `ai_model_url_gemma4`/`gemma3_4b`/`gemma3_1b` + `ai_model_id_*` 6 rows จาก `app_configs`
+- Route regex: `gemma4|gemma3_4b|gemma3_1b` → `gemma4_e2b|gemma4_e4b`
+
 ## [1.0.17] - 2026-04-20
 
 ### Backend — host .task files บน server ของเราเอง (ผ่าน admin API)

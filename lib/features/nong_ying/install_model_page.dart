@@ -221,12 +221,10 @@ class _InstallModelPageState extends ConsumerState<InstallModelPage> {
         return plan.reason ?? 'ยังไม่เปิดให้ติดตั้ง AI ตอนนี้ค่ะ';
       case ModelInstallStatus.ready:
         return switch (plan.kind) {
-          AiEngineKind.gemma4 =>
-            'เครื่องของคุณรองรับโมเดลใหญ่ Gemma 4 · ตอบไว + แม่นยำ',
-          AiEngineKind.gemma3_4b =>
-            'แนะนำ Gemma 3 4B · สมดุลระหว่างคุณภาพและขนาด',
-          AiEngineKind.gemma3_1b =>
-            'แนะนำ Gemma 3 1B · ขนาดเล็ก เหมาะกับเครื่องที่ RAM จำกัด',
+          AiEngineKind.gemma4_e4b =>
+            'เครื่องของคุณรองรับ Gemma 4 E4B · ตอบไว + แม่นยำสูง',
+          AiEngineKind.gemma4_e2b =>
+            'แนะนำ Gemma 4 E2B · สมดุลระหว่างคุณภาพและขนาด',
           _ => 'พร้อมติดตั้งค่ะ',
         };
     }
@@ -319,16 +317,14 @@ class _PlanCard extends StatelessWidget {
   }
 
   String _kindLabel(AiEngineKind k) => switch (k) {
-        AiEngineKind.gemma4 => 'Gemma 4',
-        AiEngineKind.gemma3_4b => 'Gemma 3 4B',
-        AiEngineKind.gemma3_1b => 'Gemma 3 1B',
+        AiEngineKind.gemma4_e4b => 'Gemma 4 E4B',
+        AiEngineKind.gemma4_e2b => 'Gemma 4 E2B',
         _ => 'Cloud',
       };
 
   String _sizeEstimate(AiEngineKind k) => switch (k) {
-        AiEngineKind.gemma4 => '1.2 GB',
-        AiEngineKind.gemma3_4b => '800 MB',
-        AiEngineKind.gemma3_1b => '300 MB',
+        AiEngineKind.gemma4_e4b => '3.0 GB',
+        AiEngineKind.gemma4_e2b => '2.0 GB',
         _ => '0 MB',
       };
 }
