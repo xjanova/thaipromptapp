@@ -56,15 +56,29 @@ class AiModelProxyController extends Controller
             ], 404);
         }
 
+        $upstream = self::TIER_MAP[$tier];
+
+        // ▶ Prefer the local copy if the admin has already synced it.
+        //   Nginx serves `/ai-models/…` directly without PHP in the
+        //   hot path — way faster and takes no server-side RAM for a
+        //   1.2 GB transfer.
+        $localPath = public_path('ai-models/' . $upstream['filename']);
+        if (file_exists($localPath)) {
+            return redirect('/ai-models/' . rawurlencode($upstream['filename']), 302);
+        }
+
+        // ▶ Fallback — stream from HF with a server-side token. This
+        //   path works even before admin has synced, but it costs a
+        //   full PHP-worker roundtrip per download and hits our HF
+        //   rate limit. First-time install only.
         $hfToken = env('HF_TOKEN') ?: env('HUGGING_FACE_TOKEN') ?: env('HUGGINGFACE_TOKEN');
         if (! $hfToken) {
             return response()->json([
                 'error'   => 'server_not_configured',
-                'message' => 'HF_TOKEN is not set on the server. Admin must add it to .env and run `php artisan config:clear`.',
+                'message' => 'No local copy cached and HF_TOKEN is not set. Admin must either (a) set HF_TOKEN in .env + run `php artisan config:clear`, or (b) sync the model via POST /api/v1/admin/ai/models/' . $tier . '/sync.',
             ], 503);
         }
 
-        $upstream = self::TIER_MAP[$tier];
         $range    = $request->header('Range');
 
         // cURL streaming: pipe HF response chunks straight to the
@@ -148,8 +162,8 @@ class AiModelProxyController extends Controller
     }
 
     /** HEAD request — returns model metadata without streaming.
-     *  Useful for the client to probe file size before committing to
-     *  a multi-hundred-MB download.
+     *  Prefers the local copy's stat(); falls back to a HEAD request
+     *  to HF if the model hasn't been synced yet.
      */
     public function head(Request $request, string $tier): mixed
     {
@@ -157,14 +171,25 @@ class AiModelProxyController extends Controller
             return response()->json(['error' => 'unknown_tier'], 404);
         }
 
-        $hfToken = env('HF_TOKEN') ?: env('HUGGING_FACE_TOKEN') ?: env('HUGGINGFACE_TOKEN');
-        if (! $hfToken) {
+        $upstream  = self::TIER_MAP[$tier];
+        $localPath = public_path('ai-models/' . $upstream['filename']);
+
+        if (file_exists($localPath)) {
             return response()->json([
-                'error' => 'server_not_configured',
-            ], 503);
+                'tier'         => $tier,
+                'filename'     => $upstream['filename'],
+                'size'         => filesize($localPath),
+                'source'       => 'local',
+                'served_from'  => '/ai-models/' . $upstream['filename'],
+                'modified_at'  => date('c', filemtime($localPath)),
+            ]);
         }
 
-        $upstream = self::TIER_MAP[$tier];
+        $hfToken = env('HF_TOKEN') ?: env('HUGGING_FACE_TOKEN') ?: env('HUGGINGFACE_TOKEN');
+        if (! $hfToken) {
+            return response()->json(['error' => 'server_not_configured'], 503);
+        }
+
         $ch = curl_init($upstream['url']);
         curl_setopt_array($ch, [
             CURLOPT_NOBODY         => true,
@@ -178,7 +203,6 @@ class AiModelProxyController extends Controller
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        // Extract Content-Length from the raw header block.
         $size = null;
         if (preg_match('/^content-length:\s*(\d+)/mi', $raw ?: '', $m)) {
             $size = (int) $m[1];
@@ -188,6 +212,7 @@ class AiModelProxyController extends Controller
             'tier'     => $tier,
             'filename' => $upstream['filename'],
             'size'     => $size,
+            'source'   => 'huggingface',
             'upstream' => $httpCode,
         ]);
     }

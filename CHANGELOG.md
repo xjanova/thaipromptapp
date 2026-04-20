@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.17] - 2026-04-20
+
+### Backend — host .task files บน server ของเราเอง (ผ่าน admin API)
+User request: "เว็บโหลด Gemma 4 E2B มาไว้เพื่อให้น้องหญิงโหลดจากเว็บเราแทน · เปลี่ยนโมเดลในอนาคตก็ง่ายขึ้น ในส่วนจัดการแอพหลังบ้าน"
+
+### เพิ่ม — `AiModelAdminController.php` (admin-only CRUD)
+- Routes: `/api/v1/admin/ai/models/*` · ผ่าน `auth:sanctum` + inline admin check (`role='admin'` or `is_super_admin`)
+- `GET /` → list ทั้ง 3 tier · คืน: filename, local size, sha256, modified_at, hf_url, app_config value, `hf_token_set` flag
+- `GET /{tier}` → metadata tier เดียว · ใช้ตรวจ sync status
+- `POST /{tier}/sync` → ดาวน์โหลด .task จาก HF ลง `public/ai-models/{filename}` · ใช้ `HF_TOKEN` จาก env · อะตอมมิก (`.downloading` → rename) · backup rollback 1 slot
+- `DELETE /{tier}` → ลบ local file
+- Error surface ชัดเจน: `unauthenticated` / `forbidden` / `unknown_tier` / `server_not_configured` / `upstream_failed`
+
+### เปลี่ยน — `AiModelProxyController` = local-first
+- เดิม: proxy HF ทุก request · hot path เข้า PHP + streams 1.2GB ต่อ user ต่อ download · ช้า + กิน worker
+- ตอนนี้: ถ้า `public/ai-models/{filename}` มีอยู่ → **302 redirect ไปหา `/ai-models/{filename}` · Nginx serve ตรง ๆ** · zero PHP · byte-range resume ได้เอง
+- ถ้าไม่มี local file → fallback stream จาก HF (backward compat · ทำงานได้แม้ admin ยังไม่ sync)
+- `/info` endpoint สะท้อน source: `{source: 'local', served_from: '/ai-models/...', modified_at}` หรือ `{source: 'huggingface'}` · client รู้ได้ว่ากำลังโหลดจากที่ไหน
+
+### เพิ่ม — Directory + routes บน production
+- `public/ai-models/` · perms 775 · `.gitignore` = `*` (ไม่ commit .task files)
+- Route group `v1/admin/ai/models/*` registered · syntax verified · cache cleared ✅
+- Verified live: admin endpoint คืน **401 Unauthenticated** ตามที่ตั้งไว้
+
+### ⚠️ Admin actions (ลำดับ)
+1. **Set HF_TOKEN** (เช่นเดียวกับ v1.0.16 ยังต้องมีเพื่อ initial sync):
+   ```
+   echo 'HF_TOKEN=hf_xxx' >> .env && php artisan config:clear
+   ```
+2. **Sync model** (ครั้งแรก · ผ่าน admin API หรือ Server Logs tinker):
+   ```bash
+   curl -X POST https://main.thaiprompt.online/api/v1/admin/ai/models/gemma3_4b/sync \
+     -H "Authorization: Bearer <admin_sanctum_token>"
+   ```
+   หรือ tinker: `app(\App\Http\Controllers\Api\AiModelAdminController::class)->sync($req, 'gemma3_4b')`
+3. **Verify**: `GET /api/v1/ai/models/gemma3_4b/info` → `source: 'local'` → next user's install จะ 302 ไป Nginx โดยตรง
+
+### อนาคต (roadmap)
+- Flutter admin screen · "Sync now" button ต่อ tier · real-time progress · swap model
+- Cron job: re-sync ทุกเดือนเผื่อ Google update checkpoint
+- Cloudflare CDN layer หน้า `/ai-models/*` (Cache-Control `public, max-age=86400` ถูกส่งอยู่แล้ว)
+
 ## [1.0.16] - 2026-04-20
 
 ### แก้ — **รากเหง้า** ของ "login แล้วยังต้อง login ใหม่ทุกครั้ง"
