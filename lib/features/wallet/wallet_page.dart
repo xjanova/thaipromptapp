@@ -57,8 +57,17 @@ class WalletPage extends ConsumerWidget {
               child: NavDock(
                 active: NavTab.wallet,
                 onChange: (t) {
-                  if (t == NavTab.home) context.go('/home');
-                  if (t == NavTab.affiliate) context.go('/affiliate');
+                  switch (t) {
+                    case NavTab.home:
+                      context.go('/home');
+                    case NavTab.affiliate:
+                      context.go('/affiliate');
+                    case NavTab.menu:
+                      context.go('/settings');
+                    case NavTab.wallet:
+                    case NavTab.me:
+                      break;
+                  }
                 },
               ),
             ),

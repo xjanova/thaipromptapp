@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.9] - 2026-04-20
+
+### เปลี่ยน — Splash → Onboarding (ไม่บายพาสให้อีกต่อไป)
+- v1.0.8 ส่ง guest จาก `/splash` ไป `/home` ทันที · user ไม่เคยได้เห็น "ตลาดนัดอยู่ในมือ"
+- v1.0.9 คืนค่าดั้งเดิม: guest cold-start = Splash → `/onboarding` → กด "เริ่มใช้เลย" → `/home`
+- ปุ่ม "เริ่มใช้เลย · Get started" เปลี่ยนจาก `/register` เป็น `/home` · เข้าเป็น guest ทันที ไม่บังคับสมัคร
+- ลิงก์ "มีบัญชีแล้ว? เข้าสู่ระบบ" ยังพาไป `/login` ตามเดิม
+
+### เพิ่ม — Guest access ขยาย (แก้ปัญหาหลายหน้าเด้งไป login/Route Error)
+- `/settings` → เปิดให้ guest · ติดตั้ง Gemma + Piper ได้โดยไม่ต้อง login (feature offline ล้วน ไม่แตะ backend)
+- `/nong-ying`, `/nong-ying/install` → เปิดให้ guest · AI น้องหญิงทำงาน local (Gemma บนเครื่อง)
+- ผล: guest กดเมนูล่างสุด (ปุ่มเมนู/settings) → เข้าหน้า settings ได้ทันที ไม่ต้อง login
+
+### แก้ — ปุ่มย้อนกลับไม่พังในทุกหน้า
+- หน้า `/settings` + `/cart` เข้าถึงด้วย `context.go` (replace stack) · กด back เดิมเรียก `context.pop()` บน stack ว่าง → throw/ไม่ทำอะไร
+- ใช้ `canPop()` check: ถ้า pop ได้ → pop · ถ้าไม่ได้ → `context.go('/home')` · ไม่มี dead-end
+
+### แก้ — NavDock ปุ่ม "เมนู" ไม่ทำงานในหน้า Wallet + Affiliate
+- Wallet + Affiliate page onChange handler เดิมรองรับแค่ home/wallet/affiliate · แตะ "เมนู" ไม่เกิดอะไร
+- ตอนนี้: `NavTab.menu → /settings` ครบทุกหน้า
+
+### แก้ — Login/Register error message ไม่ leak "Exception:/Bad state:" อีก
+- ก่อนหน้า: `catch (e)` แสดง `"เกิดข้อผิดพลาด: Exception: ..."` หรือ `"Bad state: ..."` ออกหน้าจอ (อ่านแล้วดูเป็น "Creation Error")
+- ตอนนี้: คัดแยก `ApiException` + `StateError` + generic · generic แสดงข้อความไทยสะอาด ๆ แทน
+- Login: `"เข้าระบบไม่สำเร็จ · ตรวจสอบอีเมล/รหัสผ่านแล้วลองใหม่ค่ะ"`
+- Register: `"สมัครไม่สำเร็จ · ลองอีกสักครู่หรือตรวจการเชื่อมต่อนะคะ"`
+- เพิ่ม validation ช่องว่างก่อน submit (แทนส่งไปให้ backend 422) · UX เร็วขึ้น
+
+### แก้ — หน้า "ไม่พบเส้นทาง" (Route Error) ดูน่ากลัว
+- เดิม: `Scaffold > Text("ไม่พบเส้นทาง: /foo")` · พื้นขาวล้วน text เดียวดาย
+- ตอนนี้: icon + ข้อความ "อุ๊ย · หน้านี้ไม่ว่างในตอนนี้" + ปุ่ม "กลับหน้าแรก" สีพาสเทล · match brand
+
 ## [1.0.8] - 2026-04-19
 
 ### เปลี่ยน — Guest mode (ไม่ต้อง login ก่อนใช้แอพ)

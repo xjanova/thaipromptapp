@@ -29,7 +29,16 @@ class OnboardingPage extends StatelessWidget {
             child: Column(
               children: [
                 const Spacer(),
-                _BottomCard(onStart: () => context.go('/register'), onLogin: () => context.go('/login')),
+                _BottomCard(
+                  // "เริ่มใช้เลย" = enter the app as a guest (browse-first).
+                  // Login/register is optional — guest can check out fresh
+                  // listings, shops, AI น้องหญิง, and settings without a
+                  // token. Auth-gated actions (cart checkout, wallet,
+                  // affiliate, my orders) will bounce to /login when
+                  // tapped, with a "ข้ามไปก่อน" escape hatch back to home.
+                  onStart: () => context.go('/home'),
+                  onLogin: () => context.go('/login'),
+                ),
               ],
             ),
           ),

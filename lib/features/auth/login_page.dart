@@ -37,16 +37,34 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       _error = null;
       _loading = true;
     });
+    final id = _idCtrl.text.trim();
+    final pw = _pwCtrl.text;
+    if (id.isEmpty || pw.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _error = 'กรอกอีเมล/เบอร์ และรหัสผ่านก่อนนะคะ';
+          _loading = false;
+        });
+      }
+      return;
+    }
     try {
       await ref.read(authControllerProvider.notifier).login(
-            identifier: _idCtrl.text.trim(),
-            password: _pwCtrl.text,
+            identifier: id,
+            password: pw,
           );
       if (mounted) context.go('/home');
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
-    } catch (e) {
-      if (mounted) setState(() => _error = 'เกิดข้อผิดพลาด: $e');
+    } on StateError catch (e) {
+      // Backend returned 200 but no token field — very rare, keep it readable.
+      if (mounted) setState(() => _error = e.message);
+    } catch (_) {
+      // Catch-all: never show "Exception: …" or "Bad state: …" to users.
+      if (mounted) {
+        setState(() =>
+            _error = 'เข้าระบบไม่สำเร็จ · ตรวจสอบอีเมล/รหัสผ่านแล้วลองใหม่ค่ะ');
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }

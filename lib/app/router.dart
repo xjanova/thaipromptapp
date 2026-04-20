@@ -53,16 +53,26 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // ───────── Guest mode ────────────────────────────────────────────────
       // Browse-without-login: anyone can wander the home grid, ตลาดสด,
-      // products, shops, and tracking pages (Tracking is read-only by token,
-      // not by user-id). The auth-gate on protected routes (cart checkout,
-      // wallet, profile, my orders) is enforced by the screens themselves —
-      // they push to /login with a snackbar when an action requires a
-      // userId. The router stays out of the way so the user never hits a
-      // dead-end onboarding screen on first launch.
+      // products, shops, settings (on-device AI/voice install, About),
+      // นง'หญิง FAB, and tracking pages (Tracking is read-only by token).
+      // The auth-gate on truly user-scoped routes (cart checkout, wallet,
+      // affiliate dashboard, my orders) is enforced here — tapping them
+      // redirects to /login. The login/register screens give a "ข้ามไปก่อน"
+      // escape hatch back to /home so the user never dead-ends.
+      //
+      // First launch (cold start, no token): splash → /onboarding so the
+      // user sees the "ตลาดนัดอยู่ในมือ" intro card. "เริ่มใช้เลย" on
+      // that card lands them on /home as a guest; "เข้าสู่ระบบ" goes to
+      // /login. Subsequent launches (warm start, still unauthenticated)
+      // also pass through splash → /onboarding so the brand intro is the
+      // stable entry point rather than dumping straight into home.
       const guestAllowedExact = {
         '/home',
         '/taladsod',
         '/taladsod/listings',
+        '/settings',        // on-device AI model install · About · no PII
+        '/nong-ying',       // local Gemma chat · prompts only, no account
+        '/nong-ying/install',
       };
       final isGuestAllowedPrefix = here.startsWith('/product/')
           || here.startsWith('/shop/')
@@ -71,12 +81,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           || here.startsWith('/orders/') && here.endsWith('/tracking');
 
       if (auth is AuthUnauthenticated) {
-        if (here == '/splash') return '/home';
+        if (here == '/splash') return '/onboarding';
         if (isAuthRoute) return null;
         if (guestAllowedExact.contains(here) || isGuestAllowedPrefix) {
           return null;
         }
-        // Anything else (cart, wallet, settings, my orders, ...) needs auth.
+        // Anything else (cart, wallet, affiliate, my orders, ...) needs auth.
         return '/login';
       }
 
@@ -155,8 +165,49 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Settings
       GoRoute(path: '/settings', builder: (_, __) => const SettingsPage()),
     ],
-    errorBuilder: (_, state) => Scaffold(
-      body: Center(child: Text('ไม่พบเส้นทาง: ${state.uri}')),
+    errorBuilder: (context, state) => Scaffold(
+      backgroundColor: const Color(0xFFFFF8EC),
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.explore_off_rounded,
+                    size: 48, color: Color(0xFFD97706)),
+                const SizedBox(height: 12),
+                const Text(
+                  'อุ๊ย · หน้านี้ไม่ว่างในตอนนี้',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF1F2937),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'กลับไปหน้าแรกก่อนนะคะ',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.black.withValues(alpha: 0.6),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFFF43F5E),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 22, vertical: 12),
+                  ),
+                  onPressed: () => context.go('/home'),
+                  child: const Text('กลับหน้าแรก'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     ),
   );
 });

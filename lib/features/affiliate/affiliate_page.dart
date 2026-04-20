@@ -86,8 +86,17 @@ class _AffiliatePageState extends ConsumerState<AffiliatePage> {
             child: NavDock(
               active: NavTab.affiliate,
               onChange: (t) {
-                if (t == NavTab.home) context.go('/home');
-                if (t == NavTab.wallet) context.go('/wallet');
+                switch (t) {
+                  case NavTab.home:
+                    context.go('/home');
+                  case NavTab.wallet:
+                    context.go('/wallet');
+                  case NavTab.menu:
+                    context.go('/settings');
+                  case NavTab.affiliate:
+                  case NavTab.me:
+                    break;
+                }
               },
             ),
           ),

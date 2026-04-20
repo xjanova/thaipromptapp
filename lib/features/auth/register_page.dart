@@ -44,11 +44,23 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       _fieldErrors = {};
       _loading = true;
     });
+    final name = _nameCtrl.text.trim();
+    final email = _emailCtrl.text.trim();
+    final pw = _pwCtrl.text;
+    if (name.isEmpty || email.isEmpty || pw.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _error = 'กรอกชื่อ · อีเมล · รหัสผ่าน ก่อนนะคะ';
+          _loading = false;
+        });
+      }
+      return;
+    }
     try {
       await ref.read(authControllerProvider.notifier).register(
-            name: _nameCtrl.text.trim(),
-            email: _emailCtrl.text.trim(),
-            password: _pwCtrl.text,
+            name: name,
+            email: email,
+            password: pw,
             phone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
             referralCode: _refCtrl.text.trim().isEmpty ? null : _refCtrl.text.trim(),
           );
@@ -62,8 +74,14 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       }
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
-    } catch (e) {
-      if (mounted) setState(() => _error = 'เกิดข้อผิดพลาด: $e');
+    } on StateError catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (_) {
+      // Catch-all: never show "Exception: …" or "Bad state: …" to users.
+      if (mounted) {
+        setState(() =>
+            _error = 'สมัครไม่สำเร็จ · ลองอีกสักครู่หรือตรวจการเชื่อมต่อนะคะ');
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }

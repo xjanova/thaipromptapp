@@ -35,7 +35,17 @@ class SettingsPage extends ConsumerWidget {
         title: Text('ตั้งค่า', style: TpText.titleLg),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.pop(),
+          // Nav-dock uses `context.go('/settings')` which REPLACES the top
+          // of the stack, so there's often nothing to pop back to. Prefer
+          // pop when possible; otherwise jump back to home so the user
+          // never sees a dead-end or a "Nothing to pop" exception.
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/home');
+            }
+          },
         ),
       ),
       body: ListView(
