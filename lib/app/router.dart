@@ -28,10 +28,18 @@ import '../features/wallet/topup_page.dart';
 import '../features/wallet/transfer_page.dart';
 import '../features/wallet/wallet_page.dart';
 
+/// Exposes the router's Navigator to widgets that sit in `MaterialApp.router`'s
+/// `builder:` callback — above the router tree — so they can still call
+/// `showDialog` / `Navigator.push`. Most notably [UpdateObserver], which
+/// otherwise silently fails because its BuildContext has no Navigator
+/// ancestor (the Navigator lives BELOW the builder, not above).
+final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root-nav');
+
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/splash',
     debugLogDiagnostics: false,
+    navigatorKey: rootNavigatorKey,
     redirect: (context, state) {
       final auth = ref.read(authControllerProvider);
       final splashDone = ref.read(splashGateProvider);

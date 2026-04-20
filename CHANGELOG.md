@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.10] - 2026-04-20
+
+### แก้ — Auto-update dialog ไม่ขึ้นเลย (รากเหง้าของ "แอพไม่รู้ว่ามีเวอร์ชั่นใหม่")
+- `UpdateObserver` ถูก mount ใน `MaterialApp.router`'s `builder:` callback · BuildContext ตรงนี้อยู่ **เหนือ** Navigator ของ router
+- `showDialog(context: context, ...)` เรียก `Navigator.of(context, rootNavigator: true)` · เดินขึ้นไปในตระกูล widgets หา Navigator · **ไม่เจอ** เพราะ Navigator อยู่ข้างล่าง
+- ผล: `showDialog` throw assertion · ถูก `catch (_)` ใน `_runCheck` กลืนเงียบ · user ไม่เห็น dialog เลย แม้ backend ตอบ 1.0.9 อยู่ก็ตาม
+- แก้: exposed `rootNavigatorKey` (GlobalKey<NavigatorState>) ผ่าน router · ส่งให้ `GoRouter(navigatorKey: ...)` · UpdateObserver ใช้ `rootNavigatorKey.currentContext` ตอน `UpdateDialog.show(...)` แทน
+
+### เพิ่ม — รอ Splash จบก่อนแสดง dialog + debug logging
+- เดิม `_runCheck` ดีเลย์ 800ms คงที่ · ถ้าโชคร้าย check เสร็จก่อน splash anim (2.3s) · dialog ขึ้นทับ logo zoom-in ดูน่าเกลียด
+- ตอนนี้: check network ขนานกับ splash anim · รอ `splashGateProvider` flip → true (หรือ timeout 3500ms) ก่อนพ่น dialog · landing frame เสมอ
+- `catch` block เพิ่ม `debugPrint` ใน `kDebugMode` เพื่อ surface การ fail ในครั้งต่อไปโดยไม่ต้องเดา · release build ยังเงียบเหมือนเดิม
+
+### ภายใน
+- `min_supported_version` จาก backend = 1.0.9 (ปัจจุบัน) · ผู้ใช้ที่ยังอยู่บน ≤ v1.0.8 จะได้ dialog แบบ `mandatory: true` (non-dismissable) → อัพเดทเร็วขึ้น
+
 ## [1.0.9] - 2026-04-20
 
 ### เปลี่ยน — Splash → Onboarding (ไม่บายพาสให้อีกต่อไป)
