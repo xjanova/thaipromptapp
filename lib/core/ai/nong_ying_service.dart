@@ -107,12 +107,19 @@ class NongYingService {
   Stream<String> ask({
     required List<ChatTurn> history,
     Map<String, Object?> context = const {},
+    String? systemPrompt,
   }) async* {
     final e = await engine();
-    yield* e.reply(
-      history: history,
-      systemPrompt: NongYingPrompts.withContext(context),
-    );
+    // Prefer the caller-supplied persona (fetched from the server) so
+    // admin edits in `ai_bot_profiles` take effect on-device too. Fall
+    // back to the embedded constant when the caller hasn't loaded a
+    // persona yet (very cold start, no cache).
+    final prompt = systemPrompt ?? NongYingPrompts.systemPrompt;
+    final body = context.isEmpty
+        ? prompt
+        : '$prompt\n\nบริบทปัจจุบัน:\n' +
+            context.entries.map((e) => '  ${e.key}: ${e.value}').join('\n');
+    yield* e.reply(history: history, systemPrompt: body);
   }
 
   /// Surface what the install screen should actually download for this device.

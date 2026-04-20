@@ -65,6 +65,21 @@ class AiChatApiController extends Controller
 
         $systemPrompt = $this->resolveSystemPrompt($data['context'] ?? []);
 
+        // Auto-RAG: query the product catalog for items relevant to the
+        // user's message and append up to 3 hints into the system
+        // prompt. The model uses them to suggest real products with
+        // accurate prices + [GO:/path] deep-links, rather than making
+        // up names. Silently skip on any error — chat should still
+        // work if the DB lookup fails.
+        try {
+            $hints = $this->retrieveKnowledge($message, 3);
+            if (! empty($hints)) {
+                $systemPrompt .= "\n\nข้อมูลที่เกี่ยวข้องในแอพ (ใช้ตอบลูกค้าได้ · ถ้าเกี่ยวข้อง · อย่าประดิษฐ์):\n" . $hints;
+            }
+        } catch (\Throwable $e) {
+            Log::debug('[AiChat] knowledge retrieval skipped: ' . $e->getMessage());
+        }
+
         try {
             $result = $ai->chat($message, $history, $systemPrompt, [
                 'temperature' => 0.7,
@@ -130,5 +145,50 @@ TXT;
             }
         }
         return $base . "\n\nบริบทปัจจุบัน:\n" . implode("\n", $lines);
+    }
+
+    /**
+     * Quick product/category lookup for the current user message.
+     * Returns a plaintext block formatted for inclusion in the system
+     * prompt, or an empty string when nothing matches.
+     *
+     * Intentionally light — we don't tokenise or stem, just LIKE-scan
+     * the user message verbatim. Works well enough for Thai which
+     * doesn't have natural whitespace between words. A FULLTEXT index
+     * + Thai word segmentation are the obvious follow-ups.
+     */
+    private function retrieveKnowledge(string $message, int $limit): string
+    {
+        if (mb_strlen($message) < 2 || mb_strlen($message) > 160) return '';
+
+        $hits = [];
+
+        // Products first (93 rows live) — filter active ones.
+        $products = DB::table('products')
+            ->where('is_active', 1)
+            ->where(function ($w) use ($message) {
+                $w->where('name', 'like', '%' . $message . '%')
+                  ->orWhere('short_description', 'like', '%' . $message . '%');
+            })
+            ->limit($limit)
+            ->get(['id', 'name', 'price', 'compare_at_price', 'stock_quantity']);
+        foreach ($products as $p) {
+            $price = number_format((float) $p->price, 0);
+            $stock = $p->stock_quantity > 0 ? "เหลือ {$p->stock_quantity}" : 'หมด';
+            $hits[] = "• [product] {$p->name} · ฿{$price} · {$stock} · [GO:/product/{$p->id}]";
+        }
+
+        // Fresh-market categories when user asks about "ผัก" / "ผลไม้"
+        $categories = DB::table('fresh_market_categories')
+            ->where('is_active', 1)
+            ->where('name', 'like', '%' . $message . '%')
+            ->limit($limit)
+            ->get(['id', 'name', 'description']);
+        foreach ($categories as $c) {
+            $desc = $c->description ? ' · ' . mb_substr($c->description, 0, 60) : '';
+            $hits[] = "• [หมวดตลาดสด] {$c->name}{$desc} · [GO:/taladsod/listings?category={$c->id}]";
+        }
+
+        return implode("\n", array_slice($hits, 0, $limit));
     }
 }

@@ -27,6 +27,18 @@ class GeminiTtsService implements TtsService {
   bool _ready = false;
   bool _speaking = false;
 
+  /// Voice + temperature overrides supplied at runtime (from persona).
+  /// When null, the server uses its `ai_bot_profiles.tts_config` defaults.
+  String? _voice;
+  double? _temperature;
+
+  /// Apply admin-configurable voice/temperature from the persona. Safe
+  /// to call repeatedly — last value wins.
+  void applyConfig({String? voice, double? temperature}) {
+    _voice = voice;
+    _temperature = temperature;
+  }
+
   @override
   bool get isReady => _ready;
 
@@ -59,7 +71,8 @@ class GeminiTtsService implements TtsService {
         Api.aiTts,
         data: {
           'text': text,
-          'voice': 'th-premwadee',
+          'voice': _voice ?? 'th-premwadee',
+          if (_temperature != null) 'temperature': _temperature,
           // Server returns WAV regardless of `format` (it wraps Gemini's
           // raw PCM in a RIFF header). Leave the field in the request
           // for backward compatibility with the earlier direct-Gemini

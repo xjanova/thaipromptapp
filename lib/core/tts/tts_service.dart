@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../ai/nong_ying_persona.dart';
 import '../api/api_client.dart';
 import '../remote_config/feature_flags.dart';
 import '../remote_config/remote_config.dart';
@@ -94,6 +95,24 @@ final ttsServiceProvider = FutureProvider<TtsService>((ref) async {
   final rc = ref.watch(remoteConfigControllerProvider).valueOrNull ?? RemoteConfig.empty();
 
   final primary = GeminiTtsService(api);
+  // Apply persona-level TTS config (voice, temperature) so admin edits
+  // to `ai_bot_profiles.tts_config` take effect without an APK update.
+  // We watch the provider so subsequent persona refreshes re-apply.
+  ref.listen(nongYingPersonaProvider, (_, next) {
+    final p = next.valueOrNull;
+    if (p == null) return;
+    primary.applyConfig(voice: p.tts.voice, temperature: p.tts.temperature);
+  });
+  // Seed with whatever the provider has right now (may be cache or
+  // fallback — both populate the voice + temperature).
+  final initialPersona = ref.read(nongYingPersonaProvider).valueOrNull;
+  if (initialPersona != null) {
+    primary.applyConfig(
+      voice: initialPersona.tts.voice,
+      temperature: initialPersona.tts.temperature,
+    );
+  }
+
   TtsService fallback;
   try {
     final manager = PiperVoiceManager(rc: rc, api: api);

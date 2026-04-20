@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/ai/ai_engine.dart';
+import '../../core/ai/nong_ying_persona.dart';
 import '../../core/ai/nong_ying_service.dart';
 import '../../core/ai/prompts.dart';
 import '../../core/analytics/event_tracker.dart';
@@ -56,33 +57,40 @@ class _NongYingChatPageState extends ConsumerState<NongYingChatPage> {
   @override
   void initState() {
     super.initState();
-    // Greeting from น้องหญิง — not sent to the model, just displayed.
-    // If the on-device model isn't installed yet, switch to the install-
-    // nudge greeting so the user's very first bubble invites them to
-    // set up the model (with a [GO:/nong-ying/install] chip). Cloud mode
-    // still works — the nudge is additive, not a block.
-    _history.add(const ChatTurn(role: ChatRole.assistant, text: NongYingPrompts.greeting));
-    _maybeSwapGreetingForInstallNudge();
+    // Start with an empty history; we populate the greeting as soon as
+    // the persona provider emits (could be cached/fallback first, then
+    // the real one from /v1/ai/nong-ying/persona seconds later).
+    WidgetsBinding.instance.addPostFrameCallback((_) => _seedGreeting());
   }
 
-  Future<void> _maybeSwapGreetingForInstallNudge() async {
+  Future<void> _seedGreeting() async {
+    // Persona is the single source of truth for greeting copy; we read
+    // whatever the provider has (cache/fallback/live) and pick between
+    // the "normal" and "not installed" variant based on on-device state.
     try {
+      final persona = await ref.read(nongYingPersonaProvider.future);
       final svc = await ref.read(nongYingServiceProvider.future);
       final installed = await svc.isOnDeviceInstalled();
-      if (!mounted || installed) return;
-      // Only replace the greeting if we haven't started a real conversation.
+      if (!mounted) return;
+      // Only seed if the history is empty (no user turns yet).
       final hasUserTurn = _history.any((t) => t.role == ChatRole.user);
-      if (hasUserTurn) return;
+      if (hasUserTurn || _history.isNotEmpty) return;
       setState(() {
-        _history
-          ..clear()
-          ..add(const ChatTurn(
-            role: ChatRole.assistant,
-            text: NongYingPrompts.greetingNotInstalled,
-          ));
+        _history.add(ChatTurn(
+          role: ChatRole.assistant,
+          text: installed ? persona.greeting : persona.greetingNotInstalled,
+        ));
       });
     } catch (_) {
-      // Swallow — the default greeting is a safe fallback.
+      // Persona fetch blew up completely — fall back to the old embedded
+      // string so the UI still renders something.
+      if (!mounted || _history.isNotEmpty) return;
+      setState(() {
+        _history.add(const ChatTurn(
+          role: ChatRole.assistant,
+          text: NongYingPrompts.greeting,
+        ));
+      });
     }
   }
 
@@ -110,9 +118,14 @@ class _NongYingChatPageState extends ConsumerState<NongYingChatPage> {
 
     try {
       final service = await ref.read(nongYingServiceProvider.future);
+      // Pull the server-controlled persona if available — admin edits
+      // to tone / app-map / suggestions propagate on next fetch without
+      // an APK update.
+      final persona = await ref.read(nongYingPersonaProvider.future);
       final stream = service.ask(
         history: _history,
         context: widget.initialContext,
+        systemPrompt: persona.systemPrompt,
       );
       // Strip any male polite particles before they reach the bubble.
       final sanitizer = ReplySanitizer();
@@ -458,21 +471,28 @@ class _Dot extends StatelessWidget {
   }
 }
 
-class _Suggestions extends StatelessWidget {
+class _Suggestions extends ConsumerWidget {
   const _Suggestions({required this.onTap});
   final ValueChanged<String>? onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Pull suggestions from persona (server-controlled). Fall back to
+    // the legacy hardcoded list if persona hasn't resolved yet.
+    final persona = ref.watch(nongYingPersonaProvider).valueOrNull;
+    final items = (persona?.suggestions.isNotEmpty ?? false)
+        ? persona!.suggestions
+        : NongYingPrompts.suggestions;
+
     return SizedBox(
       height: 42,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
-        itemCount: NongYingPrompts.suggestions.length,
+        itemCount: items.length,
         separatorBuilder: (_, __) => const SizedBox(width: 6),
         itemBuilder: (_, i) {
-          final s = NongYingPrompts.suggestions[i];
+          final s = items[i];
           return Center(
             child: GestureDetector(
               onTap: onTap == null ? null : () => onTap!(s),

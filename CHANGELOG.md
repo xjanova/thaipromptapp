@@ -7,6 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.20] - 2026-04-20
+
+### 🧠 Persona + knowledge ย้ายจากแอพ → server (admin แก้ได้ที่เดียว)
+
+User request: "สไตล์การตอบบุคลิกต่าง ๆ ของน้องหญิงให้ควบคุมได้ในส่วนควบคุมแอพ · แอพดึงบุคลิกไปจากส่วนควบคุม · รวมถึง knowledge ต่าง ๆ · เพราะการที่น้องหญิงจะรู้ว่ามีอะไรในแอพต้องค้นหาจากเว็บ thaiprompt"
+
+### Backend — 2 endpoints ใหม่
+
+**`GET /api/v1/ai/nong-ying/persona`** (public · ETag-cacheable · 60/min/IP)
+- ดึงจาก `ai_bot_profiles[id=4]` (ที่ seed ไว้ v1.0.18)
+- Returns: `system_prompt`, `greeting`, `greeting_not_installed`, `suggestions[]`, `temperature`, `top_p`, `max_tokens`, `tts{...}`, `version` (updated_at timestamp)
+- **Admin แก้ persona ใน DB → user รายใหม่เห็นทันที** (ETag invalidate client cache)
+- Live test: HTTP 200 · ETag present · system_prompt 2469 chars · 4 suggestions
+
+**`GET /api/v1/ai/nong-ying/knowledge?q=...&limit=5`** (public · 30/min/IP)
+- ค้นหา 3 tables: `products` (93 rows live) + `fresh_market_categories` (8 rows) + `product_categories` (16 rows)
+- Returns: ไทย array with `type`, `id`, `title`, `subtitle`, `route` (deep-link path)
+- Live test: `q=ผัก` → ได้ taladsod category "ผักสด" พร้อม `/taladsod/listings?category=1`
+
+### Backend — chat auto-RAG
+- `V1/AiChatApiController::chat()` · เพิ่ม `retrieveKnowledge()` ก่อนเรียก LLM
+- Query products + taladsod categories ด้วย user's message · inject top-3 ใน system prompt เป็น "ข้อมูลที่เกี่ยวข้องในแอพ (ใช้ตอบได้ · อย่าประดิษฐ์)"
+- LLM อ้างชื่อ + ราคาจริง + emit `[GO:/path]` chip ที่ link เข้าหน้าถูก
+- Live test: user ถาม "อยากได้ผักสดค่ะ แนะนำหน่อย" → Gemini ตอบ "ผักสดๆ น่าทานเลยค่ะ! น้องหญิงพาไปดูผักที่ตลาดสดนะคะ [GO:/taladsod/listings?category=1]" ✓
+
+### Backend — tts_config JSON column (admin-controlled voice/temperature)
+- `ALTER TABLE ai_bot_profiles ADD COLUMN tts_config JSON` · seed default config:
+  ```json
+  {"voice":"th-premwadee","voices_available":["th-premwadee","th-achara"],
+   "temperature":0.8,"cloud_model":"gemini-2.5-flash-preview-tts",
+   "fallback":{"engine":"piper","voice_id":"th_TH-vaja-medium","auto_install":false}}
+  ```
+- Persona endpoint ส่ง `tts_config` ติดไปกับ response
+- Admin แก้ใน DB → app refresh persona → voice เปลี่ยนทันที
+
+### App — `NongYingPersonaProvider` (fetch + SQLite cache + ETag)
+- [lib/core/ai/nong_ying_persona.dart](lib/core/ai/nong_ying_persona.dart) · `AsyncNotifierProvider<NongYingPersonaController, NongYingPersona>`
+- Cache ใน `KvStore` keys: `tp.ai.persona` (JSON) + `tp.ai.persona_etag`
+- Strategy: cold-start return cached/fallback · refresh in background · update state เมื่อ version เปลี่ยน
+- Offline-safe fallback: hardcoded persona terse สำหรับ emergency cold-start
+
+### App — chat page ใช้ persona จาก provider (drop embedded)
+- Greeting + greetingNotInstalled + suggestions อ่านจาก `nongYingPersonaProvider`
+- `NongYingService.ask()` รับ `systemPrompt` parameter · chat page ส่ง `persona.systemPrompt` · ใช้ทั้ง on-device Gemma และ cloud
+- Embedded `NongYingPrompts.{systemPrompt, greeting, greetingNotInstalled, suggestions}` ยังคงอยู่เป็น fallback ถ้า API fail
+
+### App — GeminiTtsService อ่าน voice/temperature จาก persona
+- `applyConfig(voice: String?, temperature: double?)` · ส่งค่าเข้า POST `/v1/ai/tts`
+- `ttsServiceProvider` listen `nongYingPersonaProvider` · auto-apply เมื่อ refresh
+- Admin เปลี่ยน voice "th-premwadee" → "th-achara" ใน DB · app ใหม่ได้เสียงใหม่โดยไม่ต้อง redeploy
+
+### 🎤 Embedded voice fallback · Piper VAJA (ที่ทางเลือกฟรีดีสุดที่เราเลือกไว้)
+- `th_TH-vaja-medium.onnx` (80 MB · NECTEC VAJA · Apache 2.0)
+- Router edge (tts_router.dart) fallback อัตโนมัติเมื่อ Gemini quota หมด
+- User ต้อง opt-in ติดตั้งใน Settings ครั้งเดียว (ไม่ bundle APK)
+- เปรียบเทียบ options: Piper VAJA (80 MB, Apache 2) > MMS Meta (CC-BY-NC) > XTTS (1.5 GB non-commercial)
+
 ## [1.0.19] - 2026-04-20
 
 ### 🎤 "ฟังเสียง" ใช้ได้แล้ว (TTS via AI pool)
