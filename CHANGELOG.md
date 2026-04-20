@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.12] - 2026-04-20
+
+### แก้ — "Credential Error" ภาษาอังกฤษโผล่ตอน login (แปลเป็นไทยแล้ว)
+- Backend Sanctum login ตอบ `"The provided credentials are incorrect."` (Laravel default ภาษาอังกฤษ) · app เดิมแสดงข้อความนี้ดิบ ๆ · user งง
+- เพิ่ม `_localize()` ใน `api_exceptions.dart` · ตรวจจับข้อความอังกฤษที่รู้จัก 8 แบบ → แปลเป็นไทย · string ที่มีตัวอักษรไทยอยู่แล้ว (จาก endpoint ที่ localize ไว้แล้ว) ไม่แตะ
+- แปลครอบคลุม: `credentials are incorrect`, `too many attempts`, `email/password required`, `email already taken`, `password confirmation`, `email valid`, `unauthenticated`
+- ใช้ทั้งกับ top-level `message` และ per-field `errors[k]` · validation error ใต้ช่องก็ได้ไทย
+
+### แก้ — "เซิร์ฟเวอร์ไม่ส่ง token" หายไป + token extraction ทนทานขึ้น
+- เดิมเรียก `data['token'] ?? data['access_token']` ตรง ๆ · ถ้า backend wrap ผล login/register ใน `{success, data: {token, ...}}` → extract fail → throw `StateError('เซิร์ฟเวอร์ไม่ส่ง token')` ที่ user ตีความไม่ได้
+- ตอนนี้: `_unwrap` ลองดู `raw['data']` ก่อน ถ้าเป็น Map ใช้ตัวนั้น · `_extractToken` ลองทั้ง `token`/`access_token`/`auth_token` · ลองทั้ง nested และ flat
+- ถ้ายัง extract ไม่ได้ (แปลว่า backend พัง) · ข้อความเปลี่ยนเป็น `"เข้าสู่ระบบไม่สำเร็จ · ตรวจสอบอีเมล/รหัสผ่านแล้วลองใหม่ค่ะ"` แทนที่จะโยน "เซิร์ฟเวอร์ไม่ส่ง token" ไปให้ user
+
+### เพิ่ม — Register: ช่องยืนยันรหัสผ่าน + ส่ง `password_confirmation`
+- Backend ใช้ Laravel rule `confirmed` บน `password` · ต้องมี `password_confirmation` ตรงกัน
+- App เดิมส่งแค่ `password` → backend ตอบ error `"รหัสผ่านไม่ตรงกัน"` ทั้ง ๆ ที่ user กรอกรหัสครั้งเดียว · งง
+- ตอนนี้:
+  - หน้าสมัครมี 2 ช่อง: "รหัสผ่าน (อย่างน้อย 8 ตัวอักษร)" + "ยืนยันรหัสผ่าน"
+  - ตรวจ client-side ก่อน submit: ไม่ตรง → error ทันที · < 8 ตัว → error ทันที · ไม่ต้องรอ server round-trip
+  - ส่ง `password_confirmation` ไป backend ด้วย
+
+### เพิ่ม — รหัสแนะนำรองรับลิงก์ affiliate Thaiprompt
+- เดิม user ต้อง copy code ยาว ๆ จากลิงก์เอง · ตอนนี้ paste ทั้ง URL ได้เลย
+- รองรับรูปแบบ:
+  - Bare code: `ABC123`
+  - Full URL: `https://thaiprompt.online/?ref=ABC123`
+  - Path-style: `thaiprompt.online/invite/ABC123` · `/r/ABC123` · `/ref/ABC123`
+  - Query key aliases: `?ref=` · `?referral=` · `?referral_code=` · `?referrer=` · `?r=`
+- Hint บอก user รูปแบบที่ยอมรับ: `ABC123 หรือ thaiprompt.online/?ref=ABC123`
+
 ## [1.0.11] - 2026-04-20
 
 ### เปลี่ยน — APK ลดจาก 209 MB → คาด ~120 MB (-42%)

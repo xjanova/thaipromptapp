@@ -16,7 +16,7 @@ class AuthRepository {
   /// Login with email/phone + password. Returns the authenticated [TpUser].
   /// Also persists the Sanctum token in secure storage.
   Future<TpUser> login({required String identifier, required String password}) async {
-    final data = await _api.post<Map<String, dynamic>>(
+    final raw = await _api.post<Map<String, dynamic>>(
       Api.login,
       data: {
         'email': identifier,  // backend accepts email or phone in this field
@@ -24,34 +24,60 @@ class AuthRepository {
         'device_name': 'thaipromptapp',
       },
     );
-    final token = data['token'] ?? data['access_token'];
-    if (token is! String || token.isEmpty) {
-      throw StateError('เซิร์ฟเวอร์ไม่ส่ง token · โปรดติดต่อผู้ดูแล');
+    // Accept flat OR nested `{data: {...}}` payloads — backend wraps some
+    // auth endpoints in `{success, data}` and some return fields at root.
+    final data = _unwrap(raw);
+    final token = _extractToken(data) ?? _extractToken(raw);
+    if (token == null || token.isEmpty) {
+      // Don't say "server didn't send token" — the user can't act on it.
+      throw StateError('เข้าสู่ระบบไม่สำเร็จ · ตรวจสอบอีเมล/รหัสผ่านแล้วลองใหม่ค่ะ');
     }
     await _storage.writeToken(token);
     return TpUser.fromJson(data);
   }
 
+  Map<String, dynamic> _unwrap(Map<String, dynamic> raw) {
+    final inner = raw['data'];
+    if (inner is Map<String, dynamic>) return inner;
+    return raw;
+  }
+
+  String? _extractToken(Map<String, dynamic> m) {
+    final candidates = [m['token'], m['access_token'], m['auth_token']];
+    for (final c in candidates) {
+      if (c is String && c.isNotEmpty) return c;
+    }
+    return null;
+  }
+
   /// Register a new user. Backend returns both profile + token.
+  ///
+  /// The Laravel rule is `confirmed` which expects a `password_confirmation`
+  /// sibling field equal to `password`. Callers in the app already
+  /// compare them client-side for a fast error, but we still send the
+  /// confirmation so the server-side rule passes.
   Future<TpUser> register({
     required String name,
     required String email,
     required String password,
+    required String passwordConfirmation,
     String? phone,
     String? referralCode,
   }) async {
-    final data = await _api.post<Map<String, dynamic>>(
+    final raw = await _api.post<Map<String, dynamic>>(
       Api.register,
       data: {
         'name': name,
         'email': email,
         'password': password,
+        'password_confirmation': passwordConfirmation,
         if (phone != null) 'phone': phone,
         if (referralCode != null) 'referral_code': referralCode,
       },
     );
-    final token = data['token'] ?? data['access_token'];
-    if (token is String && token.isNotEmpty) {
+    final data = _unwrap(raw);
+    final token = _extractToken(data) ?? _extractToken(raw);
+    if (token != null && token.isNotEmpty) {
       await _storage.writeToken(token);
     }
     return TpUser.fromJson(data);

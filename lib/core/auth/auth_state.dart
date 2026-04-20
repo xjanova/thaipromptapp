@@ -61,6 +61,7 @@ class AuthController extends Notifier<AuthState> {
     required String name,
     required String email,
     required String password,
+    required String passwordConfirmation,
     String? phone,
     String? referralCode,
   }) async {
@@ -69,6 +70,7 @@ class AuthController extends Notifier<AuthState> {
       name: name,
       email: email,
       password: password,
+      passwordConfirmation: passwordConfirmation,
       phone: phone,
       referralCode: referralCode,
     );

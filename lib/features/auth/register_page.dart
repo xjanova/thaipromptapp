@@ -21,6 +21,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _pwCtrl = TextEditingController();
+  final _pw2Ctrl = TextEditingController();
   final _refCtrl = TextEditingController();
   bool _loading = false;
   String? _error;
@@ -32,8 +33,39 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     _emailCtrl.dispose();
     _phoneCtrl.dispose();
     _pwCtrl.dispose();
+    _pw2Ctrl.dispose();
     _refCtrl.dispose();
     super.dispose();
+  }
+
+  /// Accept a raw referral code ("ABC123") OR a Thaiprompt affiliate
+  /// link ("https://thaiprompt.online/?ref=ABC123", or any
+  /// thaiprompt.online page with `?ref=…`). Extracts just the code.
+  /// Returns null for empty input so the API call omits the field.
+  String? _parseReferral(String raw) {
+    final t = raw.trim();
+    if (t.isEmpty) return null;
+    // Bare code — no protocol, no query string.
+    if (!t.contains('://') && !t.contains('?') && !t.contains('/')) {
+      return t;
+    }
+    // Try to extract ?ref= / ?referral= / ?referrer= from a URL.
+    try {
+      final uri = Uri.parse(t.startsWith('http') ? t : 'https://$t');
+      for (final key in const ['ref', 'referral', 'referral_code', 'referrer', 'r']) {
+        final v = uri.queryParameters[key];
+        if (v != null && v.isNotEmpty) return v;
+      }
+      // Path-style: /invite/CODE or /r/CODE
+      final segs = uri.pathSegments.where((s) => s.isNotEmpty).toList();
+      if (segs.length >= 2 &&
+          (segs.first == 'invite' || segs.first == 'r' || segs.first == 'ref')) {
+        return segs[1];
+      }
+    } catch (_) {
+      // Fall through to treat raw text as the code.
+    }
+    return t;
   }
 
   Future<void> _submit() async {
@@ -47,10 +79,35 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     final name = _nameCtrl.text.trim();
     final email = _emailCtrl.text.trim();
     final pw = _pwCtrl.text;
+    final pw2 = _pw2Ctrl.text;
     if (name.isEmpty || email.isEmpty || pw.isEmpty) {
       if (mounted) {
         setState(() {
           _error = 'กรอกชื่อ · อีเมล · รหัสผ่าน ก่อนนะคะ';
+          _loading = false;
+        });
+      }
+      return;
+    }
+    if (pw != pw2) {
+      if (mounted) {
+        setState(() {
+          _error = 'รหัสผ่านยืนยันไม่ตรงกัน';
+          _fieldErrors = {
+            'password_confirmation': ['รหัสผ่านยืนยันไม่ตรงกัน']
+          };
+          _loading = false;
+        });
+      }
+      return;
+    }
+    if (pw.length < 8) {
+      if (mounted) {
+        setState(() {
+          _error = 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร';
+          _fieldErrors = {
+            'password': ['รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร']
+          };
           _loading = false;
         });
       }
@@ -61,8 +118,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
             name: name,
             email: email,
             password: pw,
+            passwordConfirmation: pw2,
             phone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
-            referralCode: _refCtrl.text.trim().isEmpty ? null : _refCtrl.text.trim(),
+            referralCode: _parseReferral(_refCtrl.text),
           );
       if (mounted) context.go('/home');
     } on ValidationException catch (e) {
@@ -133,15 +191,22 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 errorKey: 'phone',
               ),
               _field(
-                label: 'รหัสผ่าน',
+                label: 'รหัสผ่าน (อย่างน้อย 8 ตัวอักษร)',
                 controller: _pwCtrl,
                 obscure: true,
                 errorKey: 'password',
               ),
               _field(
-                label: 'รหัสแนะนำ (ไม่บังคับ)',
+                label: 'ยืนยันรหัสผ่าน',
+                controller: _pw2Ctrl,
+                obscure: true,
+                errorKey: 'password_confirmation',
+              ),
+              _field(
+                label: 'รหัสแนะนำ / ลิงก์แนะนำ (ไม่บังคับ)',
                 controller: _refCtrl,
                 errorKey: 'referral_code',
+                hint: 'ABC123 หรือ thaiprompt.online/?ref=ABC123',
               ),
               if (_error != null) ...[
                 const SizedBox(height: 6),
@@ -187,6 +252,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     TextInputType? keyboard,
     bool obscure = false,
     String? errorKey,
+    String? hint,
   }) {
     final errs = errorKey == null ? null : _fieldErrors[errorKey];
     return Padding(
@@ -205,7 +271,12 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
               controller: controller,
               keyboardType: keyboard,
               obscureText: obscure,
-              decoration: const InputDecoration(border: InputBorder.none),
+              autocorrect: !obscure,
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                hintText: hint,
+                hintStyle: TpText.bodySm.copyWith(color: TpColors.muted),
+              ),
             ),
           ),
           if (errs != null && errs.isNotEmpty)
