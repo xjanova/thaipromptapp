@@ -29,6 +29,18 @@ class AppConfigSeeder extends Seeder
                 'description' => 'MediaPipe model filename for Gemma 4 E4B (tier: high)',
                 'is_public'   => true,
             ],
+            // HuggingFace LiteRT-compatible .task URLs. These are the
+            // models flutter_gemma's `installModel(...).fromNetwork()`
+            // can consume directly. Google's Gemma repos are gated —
+            // admin must put a valid HF token on the server OR swap to
+            // a public mirror if distribution rights allow.
+            [
+                'key'         => 'ai_model_url_gemma4',
+                'value'       => 'https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task',
+                'value_type'  => 'string',
+                'description' => 'Direct URL for Gemma 4 E4B .task (requires HF token server-side if gated)',
+                'is_public'   => true,
+            ],
             [
                 'key'         => 'ai_model_id_gemma3_4b',
                 'value'       => 'gemma-3n-E2B-it-int4.task',
@@ -37,10 +49,31 @@ class AppConfigSeeder extends Seeder
                 'is_public'   => true,
             ],
             [
+                'key'         => 'ai_model_url_gemma3_4b',
+                'value'       => 'https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task',
+                'value_type'  => 'string',
+                'description' => 'Direct URL for Gemma 3n E2B .task',
+                'is_public'   => true,
+            ],
+            [
                 'key'         => 'ai_model_id_gemma3_1b',
                 'value'       => 'gemma-3-1b-it-int4.task',
                 'value_type'  => 'string',
                 'description' => 'MediaPipe filename for Gemma 3 1B (tier: low)',
+                'is_public'   => true,
+            ],
+            [
+                'key'         => 'ai_model_url_gemma3_1b',
+                'value'       => 'https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/Gemma3-1B-IT_multi-prefill-seq_q4_ekv1280.task',
+                'value_type'  => 'string',
+                'description' => 'Direct URL for Gemma 3 1B .task (public LiteRT community mirror)',
+                'is_public'   => true,
+            ],
+            [
+                'key'         => 'ai_enabled',
+                'value'       => '1',
+                'value_type'  => 'bool',
+                'description' => 'Master switch for the น้องหญิง FAB + chat',
                 'is_public'   => true,
             ],
 

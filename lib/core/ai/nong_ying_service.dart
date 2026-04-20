@@ -120,18 +120,55 @@ class NongYingService {
   }
 
   /// Surface what the install screen should actually download for this device.
-  /// Returns null when on-device is unavailable (tier → server, or no URL in
-  /// remote config).
-  Future<ModelInstallPlan?> planInstall() async {
+  ///
+  /// Returns a [ModelInstallPlan] with `status` reflecting why we got where
+  /// we did — the install page uses it to distinguish "still loading" from
+  /// "this device can't run on-device" vs. "admin hasn't configured a URL".
+  Future<ModelInstallPlan> planInstall() async {
     final tier = await modelManager.selectTier();
+    if (tier.engine == AiEngineKind.server ||
+        tier.engine == AiEngineKind.unavailable) {
+      return ModelInstallPlan.unavailable(
+        kind: tier.engine,
+        reason: 'เครื่องนี้ใช้โหมด cloud เท่านั้น (${tier.reason})',
+      );
+    }
+
     final url = _urlFor(tier.engine);
-    if (url.isEmpty) return null;
-    return ModelInstallPlan(
+    final modelId = _modelIdFor(tier.engine);
+    if (url.isEmpty) {
+      return ModelInstallPlan.unconfigured(
+        kind: tier.engine,
+        modelId: modelId,
+        reason: 'ยังไม่เปิดให้ติดตั้ง AI ตอนนี้ค่ะ · ระหว่างนี้ใช้ cloud ได้เลย',
+      );
+    }
+
+    return ModelInstallPlan.ready(
       kind: tier.engine,
-      modelId: _modelIdFor(tier.engine),
+      modelId: modelId,
       url: url,
       modelType: ModelType.gemmaIt,
     );
+  }
+
+  /// Quick check used by chat entry points to decide whether to nudge the
+  /// user toward the install screen. Fast — does not initialise the model.
+  Future<bool> isOnDeviceInstalled() async {
+    final tier = await modelManager.selectTier();
+    if (tier.engine == AiEngineKind.server ||
+        tier.engine == AiEngineKind.unavailable) {
+      return false;
+    }
+    final modelId = _modelIdFor(tier.engine);
+    if (modelId.isEmpty) return false;
+    try {
+      await initializePlugin();
+      return await FlutterGemma.isModelInstalled(modelId);
+    } catch (e) {
+      if (kDebugMode) debugPrint('[NongYingService] isInstalled check failed: $e');
+      return false;
+    }
   }
 
   /// Fetch + register a model. Re-selects the engine on success.
@@ -157,17 +194,78 @@ class NongYingService {
   }
 }
 
+enum ModelInstallStatus {
+  /// Device matches an on-device tier AND a model URL is configured.
+  /// Install page should show size + "ดาวน์โหลด" CTA.
+  ready,
+
+  /// Device is too small / unsupported platform. Chat still works via cloud.
+  unavailable,
+
+  /// Device could run a model, but admin hasn't published a URL yet.
+  /// Install page should tell the user + offer cloud mode.
+  unconfigured,
+}
+
 class ModelInstallPlan {
-  const ModelInstallPlan({
+  const ModelInstallPlan._({
+    required this.status,
     required this.kind,
     required this.modelId,
     required this.url,
     required this.modelType,
+    this.reason,
   });
+
+  factory ModelInstallPlan.ready({
+    required AiEngineKind kind,
+    required String modelId,
+    required String url,
+    required ModelType modelType,
+  }) =>
+      ModelInstallPlan._(
+        status: ModelInstallStatus.ready,
+        kind: kind,
+        modelId: modelId,
+        url: url,
+        modelType: modelType,
+      );
+
+  factory ModelInstallPlan.unavailable({
+    required AiEngineKind kind,
+    required String reason,
+  }) =>
+      ModelInstallPlan._(
+        status: ModelInstallStatus.unavailable,
+        kind: kind,
+        modelId: '',
+        url: '',
+        modelType: ModelType.gemmaIt,
+        reason: reason,
+      );
+
+  factory ModelInstallPlan.unconfigured({
+    required AiEngineKind kind,
+    required String modelId,
+    required String reason,
+  }) =>
+      ModelInstallPlan._(
+        status: ModelInstallStatus.unconfigured,
+        kind: kind,
+        modelId: modelId,
+        url: '',
+        modelType: ModelType.gemmaIt,
+        reason: reason,
+      );
+
+  final ModelInstallStatus status;
   final AiEngineKind kind;
   final String modelId;
   final String url;
   final ModelType modelType;
+  final String? reason;
+
+  bool get isReady => status == ModelInstallStatus.ready;
 }
 
 final nongYingEnabledProvider =

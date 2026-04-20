@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.14] - 2026-04-20
+
+### แก้ — "โหลดโมเดล Gemma ไม่ได้" (root cause: backend ไม่ตั้ง URL)
+- ตรวจ `GET /v1/app/config` live · `ai_model_url_gemma4/3_4b/3_1b` ทั้งหมด = empty string
+- เก่า: `planInstall()` return `null` → install page ค้างที่ "กำลังตรวจรุ่น..." ตลอดชีวิต · user งง
+- แก้:
+  - `ModelInstallPlan` เปลี่ยนเป็น sealed-like shape ที่มี `status`: `ready` / `unavailable` / `unconfigured` · แต่ละ status มี `reason` เฉพาะ
+  - Install page แสดงสถานะชัดเจน: loading → ready (ดาวน์โหลดได้) / unavailable (เครื่องเล็ก) / unconfigured (admin ยังไม่ตั้ง URL)
+  - Settings Gemma card ตามมาเหมือนกัน · ไม่ซ่อนสถานะอีก
+- Backend seeder (`AppConfigSeeder.php`) เติม URL default ให้ครบ 3 tier · admin รัน `php artisan db:seed --class=AppConfigSeeder` แล้วใช้ได้ทันที
+
+### เพิ่ม — น้องหญิง "รู้จักทุกซอกมุมของแอพ"
+- ขยาย `NongYingPrompts.systemPrompt` ให้มี **แผนที่แอพ** ครบทุกหน้า + category ids (ผัก/ผลไม้/เนื้อสัตว์/...) ที่น้องพาไปได้
+- เปลี่ยนรูปแบบคำตอบ: model emit `[GO:/path]` · แอพแปลงเป็น **ปุ่มกดเปิดหน้า** อัตโนมัติ (chip สีส้มใต้บับเบิ้ล)
+- ตัวอย่าง: user ถาม "อยากได้ผักสด" → น้อง "ผักสดมาใหม่ทุกวันเลยค่ะ [GO:/taladsod/listings?category=1] ไปเลือกกันค่ะ" → user กด chip → พาไปหน้านั้นทันที
+- `ReplyDeepLink.extract/strip` parse token ออกจาก reply · ไม่ leak `[GO:...]` เข้าไปใน bubble
+- Chip ฉลาดเลือก label: `/wallet/topup` → "เติมเงิน" · `/taladsod/listings?category=1` → "เข้าหมวด" etc.
+- Server side (`AiChatApiController.php`) sync prompt ให้ตรงกัน · cloud reply ก็ใช้ `[GO:...]` เหมือนกัน
+
+### เพิ่ม — Greeting อัจฉริยะตามสถานะ install
+- เปิดแชทครั้งแรกแล้ว **โมเดลยังไม่ติดตั้ง** → เปลี่ยน greeting เป็น:
+  > "สวัสดีค่ะ 🌸 น้องหญิงเองค่ะ ตอนนี้น้องยังไม่ได้ติดตั้งบนเครื่องนะคะ ติดตั้งแล้วน้องจะตอบได้ไว + ใช้ได้แม้ไม่มีเน็ตค่ะ [GO:/nong-ying/install] ติดตั้งเลย (ระหว่างนี้ใช้ cloud ได้นะคะ)"
+- user กด chip "ติดตั้งน้องหญิง" → sheet ปิด · พาไปหน้า install ทันที
+- ถ้าติดตั้งแล้ว → greeting ปกติ · ไม่รบกวน
+
+### แก้ — Settings Gemma card ไม่ crash ตอน URL ว่าง
+- Settings page ใช้ `plan.isReady` แทน null check · `unconfigured/unavailable` แสดงข้อความ friendly ไม่ใช่ card ว่าง
+
 ## [1.0.13] - 2026-04-20
 
 ### เพิ่ม — SQLite foundation (`sqflite` + `LocalDb` + `KvStore`)

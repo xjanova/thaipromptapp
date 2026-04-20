@@ -32,6 +32,7 @@ class InstallModelPage extends ConsumerStatefulWidget {
 
 class _InstallModelPageState extends ConsumerState<InstallModelPage> {
   ModelInstallPlan? _plan;
+  bool _loadingPlan = true;
   double _progress = 0;
   bool _downloading = false;
   bool _done = false;
@@ -47,15 +48,25 @@ class _InstallModelPageState extends ConsumerState<InstallModelPage> {
     try {
       final svc = await ref.read(nongYingServiceProvider.future);
       final plan = await svc.planInstall();
-      if (mounted) setState(() => _plan = plan);
+      if (mounted) {
+        setState(() {
+          _plan = plan;
+          _loadingPlan = false;
+        });
+      }
     } catch (e) {
-      if (mounted) setState(() => _error = '$e');
+      if (mounted) {
+        setState(() {
+          _error = '$e';
+          _loadingPlan = false;
+        });
+      }
     }
   }
 
   Future<void> _download() async {
     final plan = _plan;
-    if (plan == null || _downloading) return;
+    if (plan == null || !plan.isReady || _downloading) return;
     setState(() {
       _downloading = true;
       _progress = 0;
@@ -120,10 +131,8 @@ class _InstallModelPageState extends ConsumerState<InstallModelPage> {
               ],
               const Spacer(),
               PuffyButton(
-                label: _done
-                    ? 'พร้อมใช้งาน · เปิดแชท'
-                    : (_downloading ? 'กำลังดาวน์โหลด...' : 'ดาวน์โหลด'),
-                variant: _done ? PuffyVariant.mint : PuffyVariant.pink,
+                label: _buttonLabel(),
+                variant: _buttonVariant(),
                 size: PuffySize.large,
                 fullWidth: true,
                 onPressed: _buttonAction(),
@@ -149,22 +158,53 @@ class _InstallModelPageState extends ConsumerState<InstallModelPage> {
   }
 
   VoidCallback? _buttonAction() {
-    if (_plan == null) return null;
+    final plan = _plan;
+    if (plan == null) return null;
     if (_downloading) return null;
     if (_done) return () => context.go('/nong-ying');
-    return _download;
+    if (plan.isReady) return _download;
+    // unavailable / unconfigured → the only useful action is dismiss.
+    return () => context.go('/home');
+  }
+
+  String _buttonLabel() {
+    final plan = _plan;
+    if (_done) return 'พร้อมใช้งาน · เปิดแชท';
+    if (_downloading) return 'กำลังดาวน์โหลด...';
+    if (plan == null) return 'กำลังตรวจ...';
+    if (plan.isReady) return 'ดาวน์โหลด';
+    return 'กลับหน้าแรก';
+  }
+
+  PuffyVariant _buttonVariant() {
+    if (_done) return PuffyVariant.mint;
+    final plan = _plan;
+    if (plan == null || !plan.isReady) return PuffyVariant.ghost;
+    return PuffyVariant.pink;
   }
 
   String _headline() {
-    if (_plan == null) {
+    if (_loadingPlan) {
       return 'กำลังตรวจรุ่นที่เหมาะกับเครื่องของคุณ...';
     }
-    return switch (_plan!.kind) {
-      AiEngineKind.gemma4 => 'เครื่องของคุณรองรับโมเดลใหญ่ Gemma 4 · ตอบไว + แม่นยำ',
-      AiEngineKind.gemma3_4b => 'แนะนำ Gemma 3 4B · สมดุลระหว่างคุณภาพและขนาด',
-      AiEngineKind.gemma3_1b => 'แนะนำ Gemma 3 1B · ขนาดเล็ก เหมาะกับเครื่องที่ RAM จำกัด',
-      _ => 'ใช้โหมด cloud เท่านั้น (ไม่มีโมเดลสำหรับเครื่องนี้)',
-    };
+    final plan = _plan;
+    if (plan == null) return 'ตรวจเครื่องไม่สำเร็จ · ลองอีกครั้งนะคะ';
+    switch (plan.status) {
+      case ModelInstallStatus.unavailable:
+        return plan.reason ?? 'ใช้โหมด cloud เท่านั้น (ไม่มีโมเดลสำหรับเครื่องนี้)';
+      case ModelInstallStatus.unconfigured:
+        return plan.reason ?? 'ยังไม่เปิดให้ติดตั้ง AI ตอนนี้ค่ะ';
+      case ModelInstallStatus.ready:
+        return switch (plan.kind) {
+          AiEngineKind.gemma4 =>
+            'เครื่องของคุณรองรับโมเดลใหญ่ Gemma 4 · ตอบไว + แม่นยำ',
+          AiEngineKind.gemma3_4b =>
+            'แนะนำ Gemma 3 4B · สมดุลระหว่างคุณภาพและขนาด',
+          AiEngineKind.gemma3_1b =>
+            'แนะนำ Gemma 3 1B · ขนาดเล็ก เหมาะกับเครื่องที่ RAM จำกัด',
+          _ => 'พร้อมติดตั้งค่ะ',
+        };
+    }
   }
 }
 
@@ -184,7 +224,8 @@ class _PlanCard extends StatelessWidget {
             const SizedBox(
               width: 20,
               height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2, color: TpColors.pink),
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: TpColors.pink),
             ),
             const SizedBox(width: 12),
             Text('กำลังเช็คการตั้งค่า...', style: TpText.bodySm),
@@ -192,6 +233,37 @@ class _PlanCard extends StatelessWidget {
         ),
       );
     }
+
+    if (p.status != ModelInstallStatus.ready) {
+      return ClayCard(
+        padding: const EdgeInsets.all(14),
+        shadow: ClayShadow.small,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.cloud_outlined,
+                color: TpColors.muted, size: 28),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('ใช้โหมด cloud ได้ทันทีนะคะ', style: TpText.titleMd),
+                  const SizedBox(height: 4),
+                  Text(
+                    p.reason ??
+                        'น้องตอบผ่านเซิร์ฟเวอร์ได้ปกติ · รอการตั้งค่าจากทีมอีกนิด',
+                    style: TpText.bodyXs.copyWith(color: TpColors.muted),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return ClayCard(
       padding: const EdgeInsets.all(14),
       shadow: ClayShadow.small,

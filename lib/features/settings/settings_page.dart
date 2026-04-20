@@ -93,7 +93,7 @@ class _GemmaCardState extends ConsumerState<_GemmaCard> {
       final svc = await ref.read(nongYingServiceProvider.future);
       final plan = await svc.planInstall();
       bool isInstalled = false;
-      if (plan != null) {
+      if (plan.isReady) {
         try {
           await NongYingService.initializePlugin();
           isInstalled = await FlutterGemma.isModelInstalled(plan.modelId);
@@ -118,7 +118,7 @@ class _GemmaCardState extends ConsumerState<_GemmaCard> {
 
   Future<void> _download() async {
     final plan = _plan;
-    if (plan == null || _downloading) return;
+    if (plan == null || !plan.isReady || _downloading) return;
     setState(() {
       _downloading = true;
       _progress = 0;
@@ -173,10 +173,12 @@ class _GemmaCardState extends ConsumerState<_GemmaCard> {
               ],
             ),
             const SizedBox(height: 10),
-            if (_loading) const LinearProgressIndicator(color: TpColors.pink, minHeight: 3)
-            else if (_plan == null)
+            if (_loading)
+              const LinearProgressIndicator(color: TpColors.pink, minHeight: 3)
+            else if (_plan == null || !_plan!.isReady)
               Text(
-                'ยังไม่มีโมเดลสำหรับเครื่องนี้ · น้องจะตอบผ่าน cloud ให้นะคะ',
+                _plan?.reason ??
+                    'ยังไม่มีโมเดลสำหรับเครื่องนี้ · น้องจะตอบผ่าน cloud ให้นะคะ',
                 style: TpText.bodySm.copyWith(color: TpColors.muted),
               )
             else
@@ -191,7 +193,7 @@ class _GemmaCardState extends ConsumerState<_GemmaCard> {
               Text('ผิดพลาด: $_error',
                   style: TpText.bodyXs.copyWith(color: const Color(0xFFD92D2D))),
             ],
-            if (_plan != null) ...[
+            if (_plan != null && _plan!.isReady) ...[
               const SizedBox(height: 10),
               Row(
                 children: [
@@ -203,7 +205,7 @@ class _GemmaCardState extends ConsumerState<_GemmaCard> {
                       variant: _installed ? PuffyVariant.mint : PuffyVariant.pink,
                       fullWidth: true,
                       onPressed:
-                          (_installed || _downloading || _plan == null) ? null : _download,
+                          (_installed || _downloading) ? null : _download,
                     ),
                   ),
                 ],
@@ -231,6 +233,7 @@ class _GemmaCardState extends ConsumerState<_GemmaCard> {
 
   String _subtitle() {
     if (_plan == null) return 'ตรวจหาโมเดลที่เหมาะกับเครื่อง...';
+    if (!_plan!.isReady) return 'ยังไม่พร้อมให้ติดตั้ง · ใช้ cloud ได้';
     return switch (_plan!.kind) {
       AiEngineKind.gemma4 => 'Gemma 4 · ตอบไว แม่น เหมาะกับเครื่องแรงๆ',
       AiEngineKind.gemma3_4b => 'Gemma 3 4B · สมดุล ขนาดไม่ใหญ่',

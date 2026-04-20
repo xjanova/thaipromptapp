@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/ai/ai_engine.dart';
 import '../../core/ai/nong_ying_service.dart';
@@ -56,7 +57,33 @@ class _NongYingChatPageState extends ConsumerState<NongYingChatPage> {
   void initState() {
     super.initState();
     // Greeting from น้องหญิง — not sent to the model, just displayed.
+    // If the on-device model isn't installed yet, switch to the install-
+    // nudge greeting so the user's very first bubble invites them to
+    // set up the model (with a [GO:/nong-ying/install] chip). Cloud mode
+    // still works — the nudge is additive, not a block.
     _history.add(const ChatTurn(role: ChatRole.assistant, text: NongYingPrompts.greeting));
+    _maybeSwapGreetingForInstallNudge();
+  }
+
+  Future<void> _maybeSwapGreetingForInstallNudge() async {
+    try {
+      final svc = await ref.read(nongYingServiceProvider.future);
+      final installed = await svc.isOnDeviceInstalled();
+      if (!mounted || installed) return;
+      // Only replace the greeting if we haven't started a real conversation.
+      final hasUserTurn = _history.any((t) => t.role == ChatRole.user);
+      if (hasUserTurn) return;
+      setState(() {
+        _history
+          ..clear()
+          ..add(const ChatTurn(
+            role: ChatRole.assistant,
+            text: NongYingPrompts.greetingNotInstalled,
+          ));
+      });
+    } catch (_) {
+      // Swallow — the default greeting is a safe fallback.
+    }
   }
 
   @override
@@ -255,7 +282,12 @@ class _Bubble extends StatelessWidget {
     final isMe = turn.role == ChatRole.user;
     final bg = isMe ? TpColors.pink : TpColors.card;
     final fg = isMe ? Colors.white : TpColors.ink;
-    final showSpeak = !isMe && onSpeak != null && turn.text.isNotEmpty;
+
+    // Assistant bubbles may contain [GO:/path] tokens that we render as
+    // tappable chips instead of leaving them in the prose.
+    final links = isMe ? const <ReplyDeepLink>[] : ReplyDeepLink.extract(turn.text);
+    final body = isMe ? turn.text : ReplyDeepLink.strip(turn.text);
+    final showSpeak = !isMe && onSpeak != null && body.isNotEmpty;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -269,17 +301,28 @@ class _Bubble extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClayCard(
-                color: bg,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                shadow: ClayShadow.small,
-                child: Text(turn.text, style: TpText.bodySm.copyWith(color: fg, height: 1.45)),
-              ),
+              if (body.isNotEmpty)
+                ClayCard(
+                  color: bg,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  shadow: ClayShadow.small,
+                  child: Text(body,
+                      style: TpText.bodySm.copyWith(color: fg, height: 1.45)),
+                ),
+              if (links.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [for (final l in links) _DeepLinkChip(link: l)],
+                  ),
+                ),
               if (showSpeak)
                 Padding(
                   padding: const EdgeInsets.only(top: 4, left: 6),
                   child: GestureDetector(
-                    onTap: () => onSpeak!(turn.text),
+                    onTap: () => onSpeak!(body),
                     behavior: HitTestBehavior.opaque,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -296,6 +339,73 @@ class _Bubble extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Small pill button that dismisses the chat sheet and navigates to the
+/// linked path. Used to render `[GO:/path]` tokens in assistant replies.
+class _DeepLinkChip extends StatelessWidget {
+  const _DeepLinkChip({required this.link});
+  final ReplyDeepLink link;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: () {
+          // Close the bottom sheet first so the target route sits on top.
+          final navigator = Navigator.of(context);
+          if (navigator.canPop()) navigator.pop();
+          context.go(link.path);
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: TpColors.mangoTint,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: TpColors.mango, width: 1.2),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.arrow_outward_rounded,
+                  size: 14, color: TpColors.ink),
+              const SizedBox(width: 5),
+              Text(
+                _labelFor(link.path),
+                style: TpText.bodyXs.copyWith(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: TpColors.ink,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _labelFor(String path) {
+    if (path.startsWith('/taladsod/listings?category=')) return 'เข้าหมวด';
+    if (path.startsWith('/taladsod/listings/')) return 'ดูสินค้า';
+    if (path.startsWith('/taladsod/sellers/')) return 'เข้าร้าน';
+    if (path.startsWith('/shop/')) return 'เข้าร้าน';
+    if (path.startsWith('/product/')) return 'ดูสินค้า';
+    if (path == '/taladsod') return 'ไปตลาดสด';
+    if (path == '/taladsod/listings') return 'ดูสินค้าทั้งหมด';
+    if (path == '/taladsod/orders') return 'ออเดอร์ของฉัน';
+    if (path == '/cart') return 'ตะกร้า';
+    if (path == '/wallet') return 'Wallet';
+    if (path == '/wallet/topup') return 'เติมเงิน';
+    if (path == '/wallet/transfer') return 'โอน';
+    if (path == '/wallet/scan') return 'สแกน QR';
+    if (path == '/affiliate') return 'Affiliate';
+    if (path == '/settings') return 'ตั้งค่า';
+    if (path == '/nong-ying/install') return 'ติดตั้งน้องหญิง';
+    return 'เปิดหน้า';
   }
 }
 
