@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.11] - 2026-04-20
+
+### เปลี่ยน — APK ลดจาก 209 MB → คาด ~120 MB (-42%)
+- ตรวจ APK v1.0.9: `.so` ใช้พื้นที่ **192 MB จาก 209 MB** (88%) · flutter_gemma ลาก native libs มา ~145 MB โดยที่แอพใช้จริงแค่ `LlmInference` path (core 46 MB)
+- ลบ libs ที่ไม่ได้ใช้ผ่าน `packaging.jniLibs.excludes`:
+
+  **Vision + image gen (-38 MB)** · ไม่มีโค้ดเราเรียก
+  - `libmediapipe_tasks_vision_jni.so` (14 MB)
+  - `libmediapipe_tasks_vision_image_generator_jni.so` (14 MB)
+  - `libimagegenerator_gpu.so` (10 MB)
+
+  **Embedding + RAG (-50 MB)** · ไม่ใช้ on-device RAG/vector search
+  - `libgemma_embedding_model_jni.so` (17 MB)
+  - `libgecko_embedding_model_jni.so` (17 MB)
+  - `libtext_chunker_jni.so` (9 MB)
+  - `libsqlite_vector_store_jni.so` (7 MB)
+
+- เหลือ: `libllm_inference_engine_jni.so` (26 MB) + `liblitertlm_jni.so` (20 MB) · ครบสำหรับ Gemma 4 chat
+- sherpa_onnx (libonnxruntime 26 MB) ยังเก็บไว้ — ใช้สำหรับ Piper offline TTS
+
+### หมายเหตุ
+- Verification หลัง CI build: `unzip -l thaipromptapp-1.0.11.apk | grep '\.so$'` ควรเห็น `.so` ~13 ไฟล์ แทนที่จะเป็น 20
+- ถ้าอนาคตเพิ่ม on-device RAG / vision / image-gen · ลบ exclude line ที่ตรงกันใน `android/app/build.gradle.kts` แล้วรี-build
+
 ## [1.0.10] - 2026-04-20
 
 ### แก้ — Auto-update dialog ไม่ขึ้นเลย (รากเหง้าของ "แอพไม่รู้ว่ามีเวอร์ชั่นใหม่")
