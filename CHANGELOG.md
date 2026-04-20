@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.15] - 2026-04-20
+
+### Backend — seeded app_configs บน production (ผ่าน Server Logs workflow)
+- `ai_model_url_gemma4` = `https://huggingface.co/google/gemma-3n-E4B-it-litert-preview/resolve/main/gemma-3n-E4B-it-int4.task`
+- `ai_model_url_gemma3_4b` = `https://huggingface.co/google/gemma-3n-E2B-it-litert-preview/resolve/main/gemma-3n-E2B-it-int4.task`
+- `ai_model_url_gemma3_1b` = `https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/Gemma3-1B-IT_multi-prefill-seq_q4_ekv1280.task`
+- `ai_enabled` = `1`
+- Upsert ผ่าน `gh workflow run "Server Logs"` → tinker base64 · verified via `/v1/app/config`
+
+### แก้ — HF 401 (gated Gemma models) · เพิ่มช่องใส่ HF token
+- ทดสอบ URL ที่ seed ไว้: HTTP **401 Unauthorized** ทั้ง 3 ตัว · Gemma บน HuggingFace ถูก gate · ต้อง accept license + ใช้ access token
+- Server ยังไม่มี `HF_TOKEN` env var · proxy download ยังไม่พร้อม → ให้ user กรอก token เองไปก่อน
+- `install_model_page`:
+  - เพิ่มกล่อง "HuggingFace token (ถ้าจำเป็น)" · ช่อง text + ปุ่ม "วาง" + ปุ่มเปิด/ซ่อน
+  - 3 ขั้นตอน one-time setup: 1) เปิดหน้าโมเดลขอสิทธิ์ · 2) สร้าง access token · 3) วางในช่อง
+  - Token เก็บใน `KvStore` (SQLite) · ครั้งต่อไปไม่ต้องกรอก
+  - ปุ่ม deep-link `huggingface.co/settings/tokens` + หน้า model repo (แยกตาม tier)
+  - Error 401/403 → แสดงคำแนะนำไทยแบบ step-by-step แทน raw exception
+- Settings Gemma card → เปลี่ยนปุ่มจาก "ดาวน์โหลด" inline เป็น "ติดตั้งน้องหญิง" → พาไป `/nong-ying/install` · UX รวมศูนย์ที่เดียว
+
+### หมายเหตุสำหรับ admin
+- ถ้าต้องการเอา HF token ออกจาก user flow: ใส่ `HF_TOKEN` ใน server `.env` + สร้าง route `/api/v1/ai/models/{file}` ที่ proxy stream จาก HF + update backend URL ให้ชี้มาที่ proxy · จะ bypass 401 ให้ทุก user โดยอัตโนมัติ · ยังไม่ได้ทำในรอบนี้
+
 ## [1.0.14] - 2026-04-20
 
 ### แก้ — "โหลดโมเดล Gemma ไม่ได้" (root cause: backend ไม่ตั้ง URL)

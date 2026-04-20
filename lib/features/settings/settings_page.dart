@@ -116,34 +116,9 @@ class _GemmaCardState extends ConsumerState<_GemmaCard> {
     }
   }
 
-  Future<void> _download() async {
-    final plan = _plan;
-    if (plan == null || !plan.isReady || _downloading) return;
-    setState(() {
-      _downloading = true;
-      _progress = 0;
-      _error = null;
-    });
-    try {
-      final svc = await ref.read(nongYingServiceProvider.future);
-      await svc.installModel(
-        plan: plan,
-        onProgress: (pct) {
-          if (mounted) setState(() => _progress = pct / 100);
-        },
-      );
-      if (mounted) {
-        setState(() {
-          _installed = true;
-          _progress = 1;
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() => _error = '$e');
-    } finally {
-      if (mounted) setState(() => _downloading = false);
-    }
-  }
+  // Download flow lives on /nong-ying/install — that page owns the
+  // HuggingFace token input needed for gated Gemma repos. Settings just
+  // surfaces the current state + a button to take the user there.
 
   @override
   Widget build(BuildContext context) {
@@ -201,11 +176,15 @@ class _GemmaCardState extends ConsumerState<_GemmaCard> {
                     child: PuffyButton(
                       label: _installed
                           ? 'ติดตั้งแล้ว'
-                          : (_downloading ? 'กำลังดาวน์โหลด...' : 'ดาวน์โหลด'),
+                          : 'ติดตั้งน้องหญิง',
                       variant: _installed ? PuffyVariant.mint : PuffyVariant.pink,
                       fullWidth: true,
-                      onPressed:
-                          (_installed || _downloading) ? null : _download,
+                      // Redirect to the dedicated install page — it owns the
+                      // HuggingFace token flow (gated Gemma repos need a PAT)
+                      // which is too much UX to duplicate inline here.
+                      onPressed: _installed
+                          ? null
+                          : () => context.push('/nong-ying/install'),
                     ),
                   ),
                 ],
