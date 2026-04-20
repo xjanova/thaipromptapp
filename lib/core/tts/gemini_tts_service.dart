@@ -60,11 +60,15 @@ class GeminiTtsService implements TtsService {
         data: {
           'text': text,
           'voice': 'th-premwadee',
-          'format': 'mp3',
+          // Server returns WAV regardless of `format` (it wraps Gemini's
+          // raw PCM in a RIFF header). Leave the field in the request
+          // for backward compatibility with the earlier direct-Gemini
+          // proxy; the new pool-backed endpoint ignores it.
+          'format': 'wav',
         },
         options: Options(
           responseType: ResponseType.bytes,
-          headers: {'Accept': 'audio/mpeg'},
+          headers: {'Accept': 'audio/*'},
         ),
       );
       final bytes = resp.data;

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.19] - 2026-04-20
+
+### 🎤 "ฟังเสียง" ใช้ได้แล้ว (TTS via AI pool)
+- Backend `/api/v1/ai/tts` เดิมใช้ `env('GEMINI_API_KEY')` ตรง ๆ + middleware `auth:sanctum` · guest ใช้ไม่ได้ + key หมดก็ stuck
+- v1.0.19 rewrite: route เป็น **public** + throttle:10,1 · controller เรียก `NongYingAIService::tts()` ที่ใช้ pool rotation เหมือน chat
+  - Loop keys ของ provider `gemini` ใน pool (priority desc + healthy first)
+  - 429 → switch ใน 1 วิ · error → 2 วิ · record usage/error กลับ pool
+  - Female voices เท่านั้น (`th-premwadee` = warm · `th-achara` = gentle) · enforced server-side
+- **Gemini TTS คืน raw PCM s16le @ 24kHz mono** (ไม่ใช่ MP3 ตามที่ mime บอก) → ห่อ 44-byte RIFF WAV header ให้ `just_audio` เล่นได้ทุก platform
+- Live verified: `curl POST /v1/ai/tts` · HTTP 200 · audio/wav · 119,610 bytes · "RIFF...WAVE" magic ครบ · keys_tried=1 · 3.9s
+- App `GeminiTtsService`: `Accept: audio/*` + `format: wav` · just_audio auto-detect
+
+### หมายเหตุ
+- Persona + knowledge base move จาก app → server · ออกแบบไว้แล้ว · จะ ship เป็น v1.0.20 (เปลี่ยนแปลงเยอะ)
+- ตอนนี้ยังอ่าน persona จาก embedded `NongYingPrompts.systemPrompt` · cloud chat ใช้ `ai_bot_profiles.system_prompt` (ตรงกันเพราะผม seed ไว้)
+
 ## [1.0.18] - 2026-04-20
 
 ### 🎯 **Gemma 4 E2B จริง + AI pool (แบบหมอดู) + น้องหญิงพูดได้แล้ว**

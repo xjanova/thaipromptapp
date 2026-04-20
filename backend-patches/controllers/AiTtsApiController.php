@@ -3,47 +3,29 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Client\ConnectionException;
+use App\Services\NongYingAIService;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 /**
- * Proxies text-to-speech requests to Gemini 3.1 Native Audio.
+ * Text-to-speech proxy for "น้องหญิง".
  *
- * Why proxy rather than let the mobile client call Gemini directly:
- *   • keeps our API key server-side (never shipped in APK)
- *   • single rate-limit bucket (20 req/min per user via throttle middleware)
- *   • lets us swap providers (Gemini ↔ Piper server ↔ Azure) without
- *     shipping a new client
+ * Uses the shared AI pool (same keys that power NongYingAIService::chat
+ * and FortuneAIService) to call Gemini 2.5 Flash TTS. Rotates through
+ * every Gemini key in the pool on rate limits so a single exhausted
+ * key doesn't silence the persona.
  *
- * POST /api/v1/ai/tts
- *   {
- *     "text":   "สวัสดีค่ะ",       // 1..2000 chars
- *     "voice":  "th-premwadee",   // optional; defaults to female Thai
- *     "format": "mp3"             // mp3 | wav | ogg
- *   }
- * → 200 Content-Type: audio/mpeg (binary bytes)
+ * Female voices only — product rule enforced server-side so a
+ * compromised client cannot request a male voice.
  *
- * Environment:
- *   GEMINI_API_KEY=...              (shared with AiChatApiController)
- *   AI_TTS_MODEL=gemini-2.5-flash-preview-tts  (override per deploy)
+ * Request:  POST /api/v1/ai/tts
+ *   body:   { "text": "สวัสดีค่ะ", "voice": "th-premwadee", "format": "mp3" }
+ * Response: binary audio bytes (Content-Type audio/mpeg) on success,
+ *           JSON error on failure.
  */
 class AiTtsApiController extends Controller
 {
-    private const ALLOWED_FORMATS = ['mp3', 'wav', 'ogg'];
-
-    /**
-     * Female voices ONLY — "น้องหญิง" is a female persona. Do not add male
-     * entries; product rule, enforced here server-side so even a compromised
-     * client cannot request a male voice.
-     */
-    private const THAI_VOICES = [
-        'th-premwadee' => 'Aoede',        // warm female · default
-        'th-achara'    => 'Callirrhoe',   // gentler female alt
-    ];
-
-    public function speak(Request $request)
+    public function speak(Request $request, NongYingAIService $ai)
     {
         $data = $request->validate([
             'text'   => 'required|string|min:1|max:2000',
@@ -51,70 +33,30 @@ class AiTtsApiController extends Controller
             'format' => 'nullable|in:mp3,wav,ogg',
         ]);
 
-        $voiceKey = $data['voice'] ?? 'th-premwadee';
-        $geminiVoice = self::THAI_VOICES[$voiceKey] ?? self::THAI_VOICES['th-premwadee'];
-        $format = $data['format'] ?? 'mp3';
+        try {
+            $result = $ai->tts(
+                $data['text'],
+                $data['voice'] ?? 'th-premwadee',
+                $data['format'] ?? 'mp3',
+            );
 
-        $apiKey = env('GEMINI_API_KEY');
-        if (! $apiKey) {
+            return response($result['bytes'], 200, [
+                'Content-Type'     => $result['mime'],
+                'Cache-Control'    => 'private, max-age=300',
+                'X-Voice'          => $result['voice'],
+                'X-Model'          => $result['model'],
+                'X-Provider'       => $result['provider'],
+                'X-Keys-Tried'     => (string) $result['key_tried_count'],
+                'X-Response-Ms'    => (string) $result['response_time_ms'],
+                'X-Thaiprompt-Tts' => 'pool_failover',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('[AiTts] pool failed', ['error' => $e->getMessage()]);
             return response()->json([
                 'error'   => 'tts_unavailable',
-                'message' => 'ยังไม่ได้ตั้งค่า TTS ค่ะ',
+                'message' => 'น้องพูดไม่ได้ตอนนี้ค่ะ · ลองใหม่สักครู่นะคะ',
+                'detail'  => config('app.debug') ? $e->getMessage() : null,
             ], 503);
-        }
-
-        $model = env('AI_TTS_MODEL', 'gemini-2.5-flash-preview-tts');
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
-
-        try {
-            $resp = Http::timeout(20)->post($url, [
-                'contents' => [[
-                    'parts' => [['text' => $data['text']]],
-                ]],
-                'generationConfig' => [
-                    'responseModalities' => ['AUDIO'],
-                    'speechConfig' => [
-                        'voiceConfig' => [
-                            'prebuiltVoiceConfig' => [
-                                'voiceName' => $geminiVoice,
-                            ],
-                        ],
-                    ],
-                ],
-            ]);
-            $resp->throw();
-
-            $audioB64 = data_get($resp->json(), 'candidates.0.content.parts.0.inlineData.data');
-            if (! $audioB64) {
-                return response()->json([
-                    'error'   => 'tts_empty',
-                    'message' => 'น้องพูดไม่ออกค่ะ 🥺',
-                ], 502);
-            }
-
-            $bytes = base64_decode($audioB64);
-            $mime = match ($format) {
-                'wav' => 'audio/wav',
-                'ogg' => 'audio/ogg',
-                default => 'audio/mpeg',
-            };
-
-            return response($bytes, 200, [
-                'Content-Type'   => $mime,
-                'Cache-Control'  => 'private, max-age=300',
-                'X-Voice'        => $voiceKey,
-            ]);
-        } catch (ConnectionException $e) {
-            return response()->json([
-                'error'   => 'network',
-                'message' => 'เน็ตไม่ดีค่ะ ลองใหม่นะคะ',
-            ], 503);
-        } catch (\Throwable $e) {
-            report($e);
-            return response()->json([
-                'error'   => 'internal',
-                'message' => 'น้องเจอปัญหานิดนึงค่ะ',
-            ], 500);
         }
     }
 }

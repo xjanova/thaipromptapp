@@ -153,6 +153,161 @@ class NongYingAIService
         throw new Exception('ไม่สามารถเชื่อมต่อ AI ได้ (ลองแล้ว ' . count($errors) . ' keys): ' . $errorSummary);
     }
 
+    // ── Text-to-speech via Gemini (female voices, pool rotation) ──────
+
+    /** Female Thai voices available via Gemini 2.5 Flash TTS. Product
+     *  rule: no male voices — persona is น้องหญิง. Map maintained here
+     *  server-side so a compromised client can't request a male voice. */
+    public const FEMALE_VOICES = [
+        'th-premwadee' => 'Aoede',        // warm, default
+        'th-achara'    => 'Callirrhoe',   // gentler alt
+    ];
+
+    /**
+     * Generate speech audio for [text] with pool rotation over all
+     * available Gemini keys. Returns raw audio bytes + mime type.
+     *
+     * @param  string  $text        Text to speak (1-2000 chars)
+     * @param  string  $voiceKey    One of FEMALE_VOICES keys
+     * @param  string  $format      mp3 | wav | ogg  (container only; Gemini returns LINEAR16)
+     * @return array {bytes, mime, voice, model, provider, key_tried_count}
+     * @throws Exception when every Gemini key fails
+     */
+    public function tts(string $text, string $voiceKey = 'th-premwadee', string $format = 'mp3'): array
+    {
+        if (! array_key_exists($voiceKey, self::FEMALE_VOICES)) {
+            $voiceKey = 'th-premwadee';
+        }
+        $geminiVoice = self::FEMALE_VOICES[$voiceKey];
+        $geminiTtsModel = env('AI_TTS_MODEL', 'gemini-2.5-flash-preview-tts');
+
+        // Collect only Gemini keys — other providers don't speak.
+        $allKeys = array_values(array_filter(
+            $this->getAllAvailableKeys(),
+            fn ($k) => $k['provider'] === 'gemini'
+        ));
+        if (empty($allKeys)) {
+            throw new Exception('ไม่มี Gemini key ใน pool · admin ต้องเพิ่ม key ก่อน');
+        }
+
+        $errors = [];
+        $startTime = microtime(true);
+
+        foreach ($allKeys as $i => $keyInfo) {
+            $label = "gemini/{$keyInfo['name']}";
+            $total = count($allKeys);
+            $n = $i + 1;
+            Log::info("NongYingAI TTS: ลอง key [{$n}/{$total}] {$label}");
+
+            try {
+                $url = "https://generativelanguage.googleapis.com/v1beta/models/{$geminiTtsModel}:generateContent?key={$keyInfo['api_key']}";
+                $resp = Http::timeout(25)->post($url, [
+                    'contents' => [['parts' => [['text' => $text]]]],
+                    'generationConfig' => [
+                        'responseModalities' => ['AUDIO'],
+                        'speechConfig' => [
+                            'voiceConfig' => [
+                                'prebuiltVoiceConfig' => ['voiceName' => $geminiVoice],
+                            ],
+                        ],
+                    ],
+                ]);
+                if (! $resp->successful()) {
+                    throw new Exception("Gemini TTS {$resp->status()}: " . Str::limit($resp->body(), 200));
+                }
+
+                $audioB64 = data_get($resp->json(), 'candidates.0.content.parts.0.inlineData.data');
+                if (! $audioB64) {
+                    throw new Exception('Gemini TTS returned no audio');
+                }
+                $pcm = base64_decode($audioB64);
+                if (empty($pcm)) {
+                    throw new Exception('Gemini TTS returned empty bytes');
+                }
+
+                // Gemini TTS returns raw PCM s16le @ 24 kHz mono — NOT
+                // MP3 as the mime on the parent part suggests. To make
+                // it playable across just_audio (iOS AVPlayer,
+                // Android ExoPlayer, web) we wrap it in a minimal
+                // 44-byte RIFF WAV header and always report audio/wav.
+                // Encoding to true MP3/OGG would need ffmpeg on the
+                // server — overkill for short chat bubbles.
+                $bytes = self::wrapPcmAsWav($pcm, sampleRate: 24000);
+                $mime = 'audio/wav';
+                // $format param is reserved for future MP3/OGG encode.
+                unset($format);
+
+                $responseMs = (int) ((microtime(true) - $startTime) * 1000);
+                if ($keyInfo['pool_key'] instanceof AiApiKey) {
+                    try {
+                        $keyInfo['pool_key']->recordUsage(
+                            mb_strlen($text),
+                            0,
+                            $geminiTtsModel,
+                            $responseMs,
+                            'nong_ying_tts'
+                        );
+                    } catch (\Throwable $_) { /* best-effort */ }
+                }
+
+                Log::info("NongYingAI TTS: สำเร็จ [{$n}/{$total}] {$label}", ['bytes' => strlen($bytes)]);
+
+                return [
+                    'bytes'            => $bytes,
+                    'mime'             => $mime,
+                    'voice'            => $voiceKey,
+                    'model'            => $geminiTtsModel,
+                    'provider'         => 'gemini',
+                    'key_tried_count'  => $n,
+                    'response_time_ms' => $responseMs,
+                ];
+            } catch (Exception $e) {
+                $msg = Str::limit($e->getMessage(), 150);
+                $errors[] = "{$label}: {$msg}";
+                if ($keyInfo['pool_key'] instanceof AiApiKey) {
+                    try {
+                        $keyInfo['pool_key']->recordError($e->getMessage(), $geminiTtsModel);
+                    } catch (\Throwable $_) { /* best-effort */ }
+                }
+                $is429 = str_contains($e->getMessage(), '429') || str_contains(strtolower($e->getMessage()), 'rate');
+                Log::warning("NongYingAI TTS: key [{$n}/{$total}] {$label} ล้ม", ['err' => $msg, '429' => $is429]);
+                if ($i < $total - 1) sleep($is429 ? 1 : 2);
+            }
+        }
+
+        throw new Exception('Gemini TTS ทุก key ล้ม (ลองแล้ว ' . count($errors) . '): ' . implode(' | ', array_slice($errors, 0, 3)));
+    }
+
+    /** Build a minimal RIFF WAV container around a raw PCM payload.
+     *  s16le · mono · 24 kHz by default (what Gemini TTS returns).
+     *  Produces a 44-byte header followed by the sample data. */
+    private static function wrapPcmAsWav(string $pcm, int $sampleRate = 24000, int $channels = 1, int $bitsPerSample = 16): string
+    {
+        $byteRate     = $sampleRate * $channels * ($bitsPerSample / 8);
+        $blockAlign   = $channels * ($bitsPerSample / 8);
+        $dataSize     = strlen($pcm);
+        $fileSize     = 36 + $dataSize;
+
+        // RIFF header
+        $header = 'RIFF';
+        $header .= pack('V', $fileSize);
+        $header .= 'WAVE';
+        // fmt subchunk
+        $header .= 'fmt ';
+        $header .= pack('V', 16);          // subchunk1Size
+        $header .= pack('v', 1);           // audioFormat = PCM
+        $header .= pack('v', $channels);
+        $header .= pack('V', $sampleRate);
+        $header .= pack('V', (int) $byteRate);
+        $header .= pack('v', (int) $blockAlign);
+        $header .= pack('v', $bitsPerSample);
+        // data subchunk
+        $header .= 'data';
+        $header .= pack('V', $dataSize);
+
+        return $header . $pcm;
+    }
+
     // ── Key discovery ──────────────────────────────────────────────────
 
     protected function getAllAvailableKeys(): array
