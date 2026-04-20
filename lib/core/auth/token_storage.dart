@@ -1,60 +1,129 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import '../db/local_db.dart';
 
 const _kToken = 'tp.auth.token';
 const _kRefresh = 'tp.auth.refresh';
 const _kPinHash = 'tp.wallet.pin_hash';
+const _kPinSalt = 'tp.wallet.pin_salt';
 
-/// Secure wrapper around [FlutterSecureStorage] for Sanctum token + wallet PIN.
+/// Persists the Sanctum token + wallet PIN across app launches.
 ///
-/// All writes go through here — NEVER call FlutterSecureStorage directly from
-/// feature code. Keys are single source of truth.
+/// History: v1.0.0 → v1.0.12 used only `flutter_secure_storage` with
+/// `resetOnError: true`. That flag silently wipes the entire keystore
+/// on any decryption failure — and on Android 12+ EncryptedSharedPreferences
+/// periodically fails with `AEADBadTagException` (known Jetpack bug,
+/// triggered by keystore rotations, seamless OS upgrades, or certain
+/// ADB install flows). Result: users got logged out after every
+/// restart.
+///
+/// v1.0.13 strategy:
+///   1. Write → `KvStore` (SQLite) is the source of truth; additionally
+///      mirror to `flutter_secure_storage` for encryption at rest.
+///   2. Read → try SQLite first (reliable). Fall back to secure storage
+///      if SQLite comes back empty (handles users upgrading from
+///      ≤ v1.0.12 who already have a token in secure storage).
+///   3. Errors on secure-storage writes are swallowed — losing the
+///      mirror is fine; losing the primary isn't, and SQLite is a
+///      local file with no keystore dependency.
+///   4. `resetOnError` flipped to `false` so we can observe failures
+///      in `kDebugMode` instead of silent data loss.
 class TokenStorage {
-  TokenStorage(this._storage);
+  TokenStorage({required this.secure, required this.kv});
 
-  final FlutterSecureStorage _storage;
+  final FlutterSecureStorage secure;
+  final KvStore kv;
 
   static const _androidOpts = AndroidOptions(
     encryptedSharedPreferences: true,
-    resetOnError: true,
+    resetOnError: false,
   );
   static const _iosOpts = IOSOptions(
     accessibility: KeychainAccessibility.first_unlock_this_device,
     synchronizable: false,
   );
 
-  static TokenStorage create() => TokenStorage(
-        const FlutterSecureStorage(aOptions: _androidOpts, iOptions: _iosOpts),
+  static FlutterSecureStorage buildSecure() => const FlutterSecureStorage(
+        aOptions: _androidOpts,
+        iOptions: _iosOpts,
       );
 
-  Future<String?> readToken() => _storage.read(key: _kToken);
-  Future<void> writeToken(String token) => _storage.write(key: _kToken, value: token);
-  Future<void> deleteToken() => _storage.delete(key: _kToken);
+  Future<String?> readToken() => _read(_kToken);
+  Future<void> writeToken(String token) => _write(_kToken, token);
+  Future<void> deleteToken() => _delete(_kToken);
 
-  Future<String?> readRefresh() => _storage.read(key: _kRefresh);
-  Future<void> writeRefresh(String token) =>
-      _storage.write(key: _kRefresh, value: token);
+  Future<String?> readRefresh() => _read(_kRefresh);
+  Future<void> writeRefresh(String token) => _write(_kRefresh, token);
 
-  Future<String?> readPinHash() => _storage.read(key: _kPinHash);
-  Future<void> writePinHash(String hash) =>
-      _storage.write(key: _kPinHash, value: hash);
-  Future<void> deletePinHash() => _storage.delete(key: _kPinHash);
+  Future<String?> readPinHash() => _read(_kPinHash);
+  Future<void> writePinHash(String hash) => _write(_kPinHash, hash);
+  Future<void> deletePinHash() => _delete(_kPinHash);
 
-  /// Arbitrary read/write for auxiliary secrets (e.g. PIN salt).
-  /// Keys MUST use the `tp.*` namespace; callers are responsible for picking
-  /// non-colliding keys.
-  Future<String?> readPinHashSalt(String key) => _storage.read(key: key);
-  Future<void> writePinHashSalt(String key, String value) =>
-      _storage.write(key: key, value: value);
+  /// Arbitrary read/write for auxiliary secrets. Keys MUST use `tp.*`.
+  Future<String?> readPinHashSalt(String key) => _read(key);
+  Future<void> writePinHashSalt(String key, String value) => _write(key, value);
 
   Future<void> clearAll() async {
     await Future.wait([
-      deleteToken(),
-      _storage.delete(key: _kRefresh),
-      deletePinHash(),
-      _storage.delete(key: 'tp.wallet.pin_salt'),
+      _delete(_kToken),
+      _delete(_kRefresh),
+      _delete(_kPinHash),
+      _delete(_kPinSalt),
     ]);
+  }
+
+  // ── internals ──────────────────────────────────────────────────────
+
+  Future<String?> _read(String key) async {
+    // 1. SQLite is always present, never corrupts silently.
+    final sqliteVal = await kv.read(key);
+    if (sqliteVal != null && sqliteVal.isNotEmpty) return sqliteVal;
+
+    // 2. Fallback — users upgrading from ≤ v1.0.12 only have the token
+    //    in secure storage. Read it, mirror to SQLite, return.
+    try {
+      final secureVal = await secure.read(key: key);
+      if (secureVal != null && secureVal.isNotEmpty) {
+        await kv.write(key, secureVal);
+        return secureVal;
+      }
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('[TokenStorage] secure read failed for $key: $e\n$st');
+      }
+    }
+    return null;
+  }
+
+  Future<void> _write(String key, String value) async {
+    // Primary: SQLite. Must succeed; let errors propagate.
+    await kv.write(key, value);
+
+    // Secondary: secure storage mirror. Best-effort.
+    try {
+      await secure.write(key: key, value: value);
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('[TokenStorage] secure mirror write failed for $key: $e\n$st');
+      }
+    }
+  }
+
+  Future<void> _delete(String key) async {
+    await kv.delete(key);
+    try {
+      await secure.delete(key: key);
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('[TokenStorage] secure delete failed for $key: $e\n$st');
+      }
+    }
   }
 }
 
-final tokenStorageProvider = Provider<TokenStorage>((_) => TokenStorage.create());
+final tokenStorageProvider = FutureProvider<TokenStorage>((ref) async {
+  final kv = await ref.watch(kvStoreProvider.future);
+  return TokenStorage(secure: TokenStorage.buildSecure(), kv: kv);
+});

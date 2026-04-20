@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.13] - 2026-04-20
+
+### เพิ่ม — SQLite foundation (`sqflite` + `LocalDb` + `KvStore`)
+- เพิ่ม `sqflite ^2.3.3` — platform SQLite runtime · ไม่ชนกับ `flutter_gemma`'s sqlite3 3.x (คนละ package)
+- `lib/core/db/local_db.dart`: `LocalDb.open()` + migration ladder (schema v1 = `kv_store` table) · ทุก schema change ต้องเป็น migration ใหม่ · ไม่แก้ migration เก่า
+- `KvStore` — thin API รอบตาราง kv: `read/write/delete/deleteAll` · TEXT value · caller JSON-encode เอง
+- ใช้เป็น foundation ของ:
+  - auth token (v1.0.13 ตอนนี้)
+  - product cache, chat history, wallet snapshot, offline queue (roadmap)
+
+### แก้ — Login ไม่ติดทนหลังปิด-เปิดแอพใหม่ (ต้อง login ใหม่ทุกครั้ง)
+- รากเหง้า: `flutter_secure_storage` ใน Android ใช้ EncryptedSharedPreferences + AES-GCM · Android 12+ มี bug `AEADBadTagException` ตอน keystore rotate / OS upgrade / ADB install ผิดท่า
+- เก่า: `resetOnError: true` → lib **เงียบ ๆ ล้าง keystore ทั้งตัว** เมื่อ read fail → token หายเรียบ → user ต้อง login ใหม่
+- ตอนนี้ `TokenStorage` strategy ใหม่:
+  - **Primary**: SQLite `kv_store` — ไม่พึ่งพา keystore · ไม่มี bug นี้
+  - **Mirror**: secure storage ยังเขียน redundantly (encryption at rest)
+  - **Read path**: ลอง SQLite ก่อน · ถ้าไม่เจอ fallback ไป secure storage · migrate ให้ user ที่อัพจาก ≤ v1.0.12 (token เดิมอยู่ใน secure อย่างเดียว → อ่าน + เขียนลง SQLite ให้ครั้งแรก)
+  - `resetOnError: false` — errors log ใน `kDebugMode` แทน silent wipe
+- `tokenStorageProvider` เปลี่ยนจาก `Provider` เป็น `FutureProvider` (ต้องรอ DB open ก่อน) · apiClient + authRepository + pinService ปรับตามให้ `.future`
+- ผล: login ครั้งเดียว → ใช้ได้ยาวจนกว่า token หมดอายุ (หรือ user logout)
+
+### แก้ — `/settings` crash ตั้งแต่ v1.0.11
+- v1.0.11 ลบ 7 native libs ของ flutter_gemma หวังจะลด APK 88 MB · ผลข้างเคียง: `FlutterGemma.initializePlugin()` หรือ `isModelInstalled()` dlopen libs บางตัว → throw `UnsatisfiedLinkError` → หน้า settings เปิดไม่ได้
+- v1.0.13 revert libs ที่เสี่ยง (embedding + RAG, 50 MB) · เก็บไว้แค่ exclusions ที่ชัวร์:
+  - `libmediapipe_tasks_vision_jni.so` (14 MB)
+  - `libmediapipe_tasks_vision_image_generator_jni.so` (14 MB)
+  - `libimagegenerator_gpu.so` (10 MB)
+- APK ผลลัพธ์: 209 MB → ~170 MB (saves 38 MB · ไม่แตะ LlmInference path)
+- ถ้าอนาคตจะ drill ลงไปอีก: รัน `adb logcat` ขณะ initializePlugin + ดู UnsatisfiedLinkError ตัวไหนโผล่ขึ้น
+
+### เพิ่ม — Wallet / Affiliate mini card แตะได้บน home
+- เดิม card แสดงยอดเงิน/rank เฉย ๆ · user แตะไม่มีอะไรเกิดขึ้น · งง
+- ตอนนี้:
+  - แตะที่ Wallet card → `/wallet`
+  - "+ เติม" → `/wallet/topup` ตรง ๆ (ข้ามหน้า summary)
+  - "ถอน" → `/wallet` (stub จนกว่า v1.1 withdrawal flow ลง)
+  - แตะที่ Affiliate card → `/affiliate`
+
 ## [1.0.12] - 2026-04-20
 
 ### แก้ — "Credential Error" ภาษาอังกฤษโผล่ตอน login (แปลเป็นไทยแล้ว)

@@ -122,6 +122,6 @@ class AuthRepository {
 
 final authRepositoryProvider = FutureProvider<AuthRepository>((ref) async {
   final api = await ref.watch(apiClientProvider.future);
-  final storage = ref.watch(tokenStorageProvider);
+  final storage = await ref.watch(tokenStorageProvider.future);
   return AuthRepository(api, storage);
 });

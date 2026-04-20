@@ -1,7 +1,7 @@
 name: thaipromptapp
 description: "Thaiprompt — ตลาดชุมชนไทย · Community Marketplace"
 publish_to: 'none'
-version: 1.0.12+13
+version: 1.0.13+14
 
 environment:
   sdk: ^3.11.0
@@ -86,6 +86,15 @@ dependencies:
 
   # Audio playback for TTS output (Gemini TTS streams MP3 bytes)
   just_audio: ^0.9.42
+
+  # Local SQLite — foundation for all on-device persistence:
+  #   • kv_store fallback for auth token (survives flutter_secure_storage
+  #     keystore corruption on Android 12+)
+  #   • future: product cache, chat history, wallet snapshot, offline queue
+  # Uses the platform SQLite runtime (not the `sqlite3` Dart package), so
+  # it does NOT conflict with flutter_gemma's sqlite3 ^3.1 requirement.
+  sqflite: ^2.3.3
+  path: ^1.9.0
 
 dev_dependencies:
   flutter_test:

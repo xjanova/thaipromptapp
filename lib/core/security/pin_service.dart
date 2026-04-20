@@ -90,7 +90,7 @@ class PinService {
   }
 }
 
-final pinServiceProvider = Provider<PinService>((ref) {
-  final storage = ref.watch(tokenStorageProvider);
+final pinServiceProvider = FutureProvider<PinService>((ref) async {
+  final storage = await ref.watch(tokenStorageProvider.future);
   return PinService(storage);
 });

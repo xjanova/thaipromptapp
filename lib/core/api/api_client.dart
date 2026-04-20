@@ -159,7 +159,7 @@ const _fallbackBaseUrl = String.fromEnvironment(
 final apiBaseUrlProvider = Provider<String>((_) => _fallbackBaseUrl);
 
 final apiClientProvider = FutureProvider<ApiClient>((ref) async {
-  final storage = ref.watch(tokenStorageProvider);
+  final storage = await ref.watch(tokenStorageProvider.future);
   final baseUrl = ref.watch(apiBaseUrlProvider);
   return ApiClient.create(baseUrl: baseUrl, tokenStorage: storage);
 });

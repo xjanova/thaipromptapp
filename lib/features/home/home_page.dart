@@ -343,10 +343,16 @@ class _WalletMini extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Whole card taps through to /wallet. The inner "+ เติม" action
+    // jumps straight to /wallet/topup so the user skips the summary
+    // screen when the intent is already clear. "ถอน" is visual-only
+    // until v1.1's withdrawal flow lands; we route it to /wallet for
+    // now so it never looks broken.
     return ClayCard(
       color: TpColors.deepInk,
       padding: const EdgeInsets.all(14),
       clipChildren: true,
+      onTap: () => context.go('/wallet'),
       child: SizedBox(
         height: 98,
         child: Stack(
@@ -374,17 +380,20 @@ class _WalletMini extends StatelessWidget {
                       label: '+ เติม',
                       variant: PuffyVariant.mango,
                       size: PuffySize.small,
-                      onPressed: () {},
+                      onPressed: () => context.go('/wallet/topup'),
                     ),
                     const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.white, width: 1.5),
-                        borderRadius: BorderRadius.circular(10),
+                    GestureDetector(
+                      onTap: () => context.go('/wallet'),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.white, width: 1.5),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text('ถอน',
+                            style: TpText.btnSm.copyWith(color: Colors.white)),
                       ),
-                      child: Text('ถอน',
-                          style: TpText.btnSm.copyWith(color: Colors.white)),
                     ),
                   ],
                 ),
@@ -411,6 +420,7 @@ class _AffiliateMini extends StatelessWidget {
       color: TpColors.mint,
       padding: const EdgeInsets.all(14),
       clipChildren: true,
+      onTap: () => context.go('/affiliate'),
       child: SizedBox(
         height: 98,
         child: Stack(

@@ -1,11 +1,12 @@
 // Tests for PinService — constant-time HMAC verify guarantees.
 //
-// Uses a fake TokenStorage so we can test without secure-storage plugin
-// channels (which aren't available in widget-less Dart tests).
+// Uses fakes for TokenStorage's dependencies (secure storage + KvStore)
+// so we can test without plugin channels or a real SQLite file.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:thaipromptapp/core/auth/token_storage.dart';
+import 'package:thaipromptapp/core/db/local_db.dart';
 import 'package:thaipromptapp/core/security/pin_service.dart';
 
 class _InMemorySecureStorage implements FlutterSecureStorage {
@@ -59,11 +60,38 @@ class _InMemorySecureStorage implements FlutterSecureStorage {
   dynamic noSuchMethod(Invocation i) => throw UnimplementedError();
 }
 
+class _InMemoryKvStore implements KvStore {
+  final _m = <String, String>{};
+
+  @override
+  Future<String?> read(String key) async => _m[key];
+
+  @override
+  Future<void> write(String key, String value) async {
+    _m[key] = value;
+  }
+
+  @override
+  Future<void> delete(String key) async {
+    _m.remove(key);
+  }
+
+  @override
+  Future<void> deleteAll(Iterable<String> keys) async {
+    for (final k in keys) {
+      _m.remove(k);
+    }
+  }
+}
+
 void main() {
   late PinService service;
 
   setUp(() {
-    final storage = TokenStorage(_InMemorySecureStorage());
+    final storage = TokenStorage(
+      secure: _InMemorySecureStorage(),
+      kv: _InMemoryKvStore(),
+    );
     service = PinService(storage);
   });
 

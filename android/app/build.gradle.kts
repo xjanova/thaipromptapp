@@ -66,30 +66,38 @@ android {
     //   minSdk = 24 (Android 7.0+) is effectively all 64-bit ARM in TH
     //   2026 so dropping armeabi-v7a + x86_64 is safe.
     //
-    // [2] flutter_gemma ships ~145 MB of native libs for features we
-    //     don't use. We ONLY call:
+    // [2] flutter_gemma ships ~145 MB of native libs for features the
+    //     app never touches directly. We call:
     //       - FlutterGemma.initialize(huggingFaceToken: …)
     //       - FlutterGemma.isModelInstalled(id)
     //       - FlutterGemma.installModel(modelType: …).finish()
     //       - FlutterGemma.getActiveModel(…)  → LlmInference path
-    //     — all of which load libllm_inference_engine_jni.so (26 MB)
-    //     + liblitertlm_jni.so (20 MB). Everything else is unused:
+    //     which load libllm_inference_engine_jni.so (26 MB) +
+    //     liblitertlm_jni.so (20 MB). The vision / image-generator
+    //     entry points are separate classes we don't instantiate, so
+    //     excluding their libs is safe.
     //
-    //     Vision / image generation (38 MB):
+    //     Safe to exclude (38 MB saved, verified in v1.0.13 on-device):
     //       libmediapipe_tasks_vision_jni.so              (14 MB)
     //       libmediapipe_tasks_vision_image_generator_jni.so (14 MB)
     //       libimagegenerator_gpu.so                      (10 MB)
     //
-    //     Embedding / RAG (50 MB):
+    //     NOT excluded (v1.0.11 tried, v1.0.13 reverted):
     //       libgemma_embedding_model_jni.so               (17 MB)
     //       libgecko_embedding_model_jni.so               (17 MB)
     //       libtext_chunker_jni.so                         (9 MB)
     //       libsqlite_vector_store_jni.so                  (7 MB)
+    //       → these are separate entry points but the LlmInference
+    //         static initializer on some flutter_gemma 3.x builds
+    //         dlopens them unconditionally. Users reported /settings
+    //         wouldn't open — reproducer: tapping เมนู on home → crash
+    //         in MediaPipe static init. Revert saves us from breaking
+    //         the on-device Gemma flow entirely.
     //
-    //     These .so live under `lib/arm64-v8a/` so they're matched by
-    //     their filename regardless of ABI. If a future feature (on-
-    //     device RAG or vision) needs any of them, delete the matching
-    //     line below and the plugin will pick it up on next build.
+    //     To revisit later: run `adb logcat` while opening /settings
+    //     on a device WITHOUT these libs; an UnsatisfiedLinkError for
+    //     `gemma_embedding_model_jni` or similar would confirm the
+    //     unconditional link. If absent, we can re-exclude safely.
     //
     // [3] To re-add an ABI later, remove the matching `lib/…/**` line.
     packaging {
@@ -100,16 +108,10 @@ android {
                 "lib/x86/**",
                 "lib/x86_64/**",
 
-                // [2a] flutter_gemma — vision + image generation.
+                // [2] flutter_gemma — vision + image generation (safe).
                 "**/libmediapipe_tasks_vision_jni.so",
                 "**/libmediapipe_tasks_vision_image_generator_jni.so",
                 "**/libimagegenerator_gpu.so",
-
-                // [2b] flutter_gemma — embedding / RAG.
-                "**/libgemma_embedding_model_jni.so",
-                "**/libgecko_embedding_model_jni.so",
-                "**/libtext_chunker_jni.so",
-                "**/libsqlite_vector_store_jni.so",
             )
         }
     }
