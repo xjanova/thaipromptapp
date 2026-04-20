@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.16] - 2026-04-20
+
+### แก้ — **รากเหง้า** ของ "login แล้วยังต้อง login ใหม่ทุกครั้ง"
+- v1.0.13 ย้าย TokenStorage ไป SQLite + secure mirror · token **เขียน** สำเร็จ
+- **แต่** bootstrap logic ยังเก่า: `repo.me()` fail ด้วยเหตุผลใดก็ตาม → `catch (_)` → `AuthUnauthenticated` → user ถูก logout
+- ผล: network ช้า / server timeout / WiFi ยังไม่ connect ตอน cold start → me() throw → auth wipe · user ต้อง login ใหม่ทั้งที่ token ยังถูกต้อง
+- แก้ใน [auth_state.dart](lib/core/auth/auth_state.dart):
+  - แยก `UnauthorizedException` (401 จริง → logout) ออกจาก `ApiException` (network/timeout/5xx → **เก็บ auth ไว้**)
+  - ถ้า me() fail แบบ transient: set `AuthAuthenticated(TpUser.placeholder())` · user ยัง logged in · retry me() เงียบ ๆ ใน 4 วินาที
+  - Token wipe จะเกิดเฉพาะกรณีที่ server ตอบ **401 ด้วยตัวเอง** · network ไม่ดีไม่ wipe
+- เพิ่ม `TpUser.placeholder()` factory · id=0 + name="กำลังโหลด..."
+- ผล: login ครั้งเดียว → ใช้ได้ยาวจนกว่าจะ logout เองหรือ token หมดอายุ · network ไม่ดีตอนเปิดแอพไม่ทำให้หลุด
+
+### เปลี่ยน — HF Token จัดการฝั่ง server แทน user (ตามที่ user ขอ)
+- v1.0.15 ทำ HF token input ใน install page · user งง · ไม่ใช่ UX ที่ดี
+- v1.0.16 **ลบ input field ออกทั้งหมด** · user ไม่ต้องเห็น HF ใด ๆ
+- Backend `AiModelProxyController.php` (deploy ผ่าน Server Logs แล้ว):
+  - `GET /api/v1/ai/models/{tier}` (tier ∈ gemma4/gemma3_4b/gemma3_1b)
+  - Stream .task จาก HuggingFace ผ่าน curl · แนบ `Authorization: Bearer $HF_TOKEN` จาก server env
+  - รองรับ Range request (resume download บนเน็ตกระตุก)
+  - Cache `public, max-age=86400` · CF/Nginx จะ cache อัตโนมัติถ้ามี layer หน้า
+  - `/info` endpoint returns file size + upstream status (client can probe before downloading)
+- Route registered ใน `routes/api.php` ครอบกลุ่ม `v1/ai/models/*`
+- `app_configs.ai_model_url_*` ชี้มาที่ proxy แล้ว:
+  - `https://main.thaiprompt.online/api/v1/ai/models/gemma4`
+  - `https://main.thaiprompt.online/api/v1/ai/models/gemma3_4b`
+  - `https://main.thaiprompt.online/api/v1/ai/models/gemma3_1b`
+- Verified live: proxy คืน **503 "server_not_configured"** จนกว่า admin จะใส่ `HF_TOKEN` ใน `.env`
+
+### ⚠️ Admin action required
+1. SSH/Server Logs: เพิ่ม `HF_TOKEN=hf_xxxxx` ใน `/home/admin/domains/main.thaiprompt.online/public_html/.env`
+2. รัน `php artisan config:clear`
+3. Test: `curl -I https://main.thaiprompt.online/api/v1/ai/models/gemma3_1b/info` ควรคืน 200 + JSON มี `size`
+4. เมื่อ token ใส่แล้ว · user เปิดแอพ → install → ดาวน์โหลดได้เงียบ ๆ ไม่ต้องกรอกอะไร
+
 ## [1.0.15] - 2026-04-20
 
 ### Backend — seeded app_configs บน production (ผ่าน Server Logs workflow)

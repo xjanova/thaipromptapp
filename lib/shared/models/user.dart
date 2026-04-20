@@ -27,6 +27,13 @@ class TpUser extends Equatable {
   final String? rankName;
   final int? rankLevel;
 
+  /// Placeholder used when we trust a stored token but can't reach /me
+  /// (transient network failure on cold start). Fields will fill in the
+  /// next time /me succeeds — we re-invalidate the auth controller then.
+  factory TpUser.placeholder() => const TpUser(id: 0, name: 'กำลังโหลด...');
+
+  bool get isPlaceholder => id == 0;
+
   factory TpUser.fromJson(Map<String, dynamic> json) {
     // Backend returns user fields either at top level or nested under `user`.
     final u = (json['user'] is Map<String, dynamic>)

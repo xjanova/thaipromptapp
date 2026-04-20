@@ -1,21 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/ai/ai_engine.dart';
 import '../../core/ai/nong_ying_service.dart';
-import '../../core/db/local_db.dart';
 import '../../core/theme/text_styles.dart';
 import '../../core/theme/tokens.dart';
 import '../../shared/widgets/blob_3d.dart';
 import '../../shared/widgets/clay_card.dart';
 import '../../shared/widgets/puffy_button.dart';
-
-const _kHfTokenKey = 'tp.ai.hf_token';
 
 /// First-run installer for the on-device Gemma model.
 ///
@@ -42,31 +37,11 @@ class _InstallModelPageState extends ConsumerState<InstallModelPage> {
   bool _downloading = false;
   bool _done = false;
   String? _error;
-  final _tokenCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadPlan();
-    _loadSavedToken();
-  }
-
-  @override
-  void dispose() {
-    _tokenCtrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadSavedToken() async {
-    try {
-      final kv = await ref.read(kvStoreProvider.future);
-      final t = await kv.read(_kHfTokenKey);
-      if (t != null && t.isNotEmpty && mounted) {
-        _tokenCtrl.text = t;
-      }
-    } catch (_) {
-      // no-op — token is optional
-    }
   }
 
   Future<void> _loadPlan() async {
@@ -98,21 +73,13 @@ class _InstallModelPageState extends ConsumerState<InstallModelPage> {
       _error = null;
     });
 
-    // Persist the HF token so retries don't force re-entry, and so the
-    // chat flow can reuse it silently for future model swaps.
-    final token = _tokenCtrl.text.trim();
-    if (token.isNotEmpty) {
-      try {
-        final kv = await ref.read(kvStoreProvider.future);
-        await kv.write(_kHfTokenKey, token);
-      } catch (_) {/* best-effort */}
-    }
-
     try {
       final svc = await ref.read(nongYingServiceProvider.future);
+      // No hfToken: the install URL points at main.thaiprompt.online
+      // which proxies HuggingFace with a server-side token. Users never
+      // see / manage HF credentials.
       await svc.installModel(
         plan: plan,
-        hfToken: token.isEmpty ? null : token,
         onProgress: (pct) {
           if (mounted) setState(() => _progress = pct / 100.0);
         },
@@ -136,38 +103,19 @@ class _InstallModelPageState extends ConsumerState<InstallModelPage> {
         lower.contains('403') ||
         lower.contains('unauthorized') ||
         lower.contains('gated')) {
-      return 'ดาวน์โหลดไม่ได้ · HuggingFace ล็อกโมเดลนี้ไว้ค่ะ '
-          'ต้อง:\n1) กดขอสิทธิ์บนหน้าโมเดล (free)\n'
-          '2) ไปที่ huggingface.co/settings/tokens · สร้าง access token\n'
-          '3) วาง token ในช่องด้านบน แล้วกดดาวน์โหลดอีกครั้งค่ะ';
+      // Shouldn't normally reach the user — proxy handles auth. If we
+      // see this it means the server hasn't finished configuring its HF
+      // credentials yet. Keep the message short + blame-free.
+      return 'ระบบยังเปิดให้ติดตั้งไม่ได้ตอนนี้ค่ะ · ทีมกำลังเปิดให้ · '
+          'ลองใหม่ภายหลังนะคะ (ระหว่างนี้ใช้ cloud ได้เลย)';
     }
     if (lower.contains('timed out') || lower.contains('timeout')) {
       return 'ดาวน์โหลดช้าเกินไป · ลองใหม่เมื่อเน็ตดีขึ้นนะคะ';
     }
-    return raw;
-  }
-
-  Future<void> _openHfTokenPage() async {
-    final uri = Uri.parse('https://huggingface.co/settings/tokens');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (lower.contains('network') || lower.contains('connection')) {
+      return 'เน็ตมีปัญหา · ตรวจการเชื่อมต่อแล้วลองใหม่นะคะ';
     }
-  }
-
-  Future<void> _openModelLicensePage() async {
-    final plan = _plan;
-    if (plan == null || !plan.isReady) return;
-    // Derive the repo URL from the install URL:
-    //   https://huggingface.co/<owner>/<repo>/resolve/main/<file>.task
-    // → https://huggingface.co/<owner>/<repo>
-    final m = RegExp(r'^https://huggingface\.co/([^/]+/[^/]+)/resolve/')
-        .firstMatch(plan.url);
-    if (m == null) return;
-    final repo = m.group(1)!;
-    final uri = Uri.parse('https://huggingface.co/$repo');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+    return 'ดาวน์โหลดไม่สำเร็จ · ลองใหม่อีกครั้งนะคะ';
   }
 
   @override
@@ -199,15 +147,6 @@ class _InstallModelPageState extends ConsumerState<InstallModelPage> {
               ),
               const SizedBox(height: 20),
               _PlanCard(plan: _plan),
-              if (_plan != null && _plan!.isReady) ...[
-                const SizedBox(height: 14),
-                _HfTokenSection(
-                  controller: _tokenCtrl,
-                  onOpenTokenPage: _openHfTokenPage,
-                  onOpenModelPage: _openModelLicensePage,
-                  downloading: _downloading,
-                ),
-              ],
               const SizedBox(height: 20),
               if (_downloading || _progress > 0) _ProgressBlock(progress: _progress, done: _done),
               if (_error != null) ...[
@@ -429,193 +368,3 @@ class _ProgressBlock extends StatelessWidget {
   }
 }
 
-/// Optional HuggingFace token input + instructions.
-///
-/// Google's Gemma models on HuggingFace are gated — users must accept
-/// the license on the model's page and use a personal access token to
-/// download. We persist the token to [KvStore] so retries and future
-/// re-installs don't force the user to re-enter it.
-class _HfTokenSection extends StatefulWidget {
-  const _HfTokenSection({
-    required this.controller,
-    required this.onOpenTokenPage,
-    required this.onOpenModelPage,
-    required this.downloading,
-  });
-
-  final TextEditingController controller;
-  final VoidCallback onOpenTokenPage;
-  final VoidCallback onOpenModelPage;
-  final bool downloading;
-
-  @override
-  State<_HfTokenSection> createState() => _HfTokenSectionState();
-}
-
-class _HfTokenSectionState extends State<_HfTokenSection> {
-  bool _obscure = true;
-
-  Future<void> _paste() async {
-    final clip = await Clipboard.getData('text/plain');
-    final t = clip?.text?.trim();
-    if (t != null && t.isNotEmpty) {
-      widget.controller.text = t;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ClayCard(
-      padding: const EdgeInsets.all(14),
-      shadow: ClayShadow.small,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.key_rounded, size: 18, color: TpColors.pink),
-              const SizedBox(width: 8),
-              Text('HuggingFace token (ถ้าจำเป็น)', style: TpText.titleMd),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'โมเดล Gemma บน HF ถูกล็อกไว้ค่ะ · ทำ 3 ขั้นตอนครั้งเดียว:',
-            style: TpText.bodyXs.copyWith(color: TpColors.muted),
-          ),
-          const SizedBox(height: 8),
-          _StepRow(
-            number: '1',
-            text: 'กดขอสิทธิ์ใช้โมเดล (ฟรี · อนุมัติเร็ว)',
-            actionLabel: 'เปิดหน้าโมเดล',
-            onAction: widget.onOpenModelPage,
-          ),
-          _StepRow(
-            number: '2',
-            text: 'สร้าง access token (scope: read)',
-            actionLabel: 'huggingface.co/settings/tokens',
-            onAction: widget.onOpenTokenPage,
-          ),
-          _StepRow(
-            number: '3',
-            text: 'วาง token ในช่องด้านล่าง แล้วกด "ดาวน์โหลด"',
-          ),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-            decoration: BoxDecoration(
-              color: TpColors.mangoTint,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: widget.controller,
-                    enabled: !widget.downloading,
-                    obscureText: _obscure,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      hintText: 'hf_...',
-                    ),
-                    style: TpText.monoLabel.copyWith(fontSize: 13),
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'วาง',
-                  icon: const Icon(Icons.content_paste_rounded, size: 18),
-                  onPressed: widget.downloading ? null : _paste,
-                ),
-                IconButton(
-                  tooltip: _obscure ? 'แสดง' : 'ซ่อน',
-                  icon: Icon(
-                    _obscure
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
-                    size: 18,
-                  ),
-                  onPressed: () => setState(() => _obscure = !_obscure),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Token เก็บใน SQLite ภายในเครื่องค่ะ · ไม่ส่งไปไหน · ใช้ครั้งถัดไปก็ไม่ต้องกรอกอีก',
-            style: TpText.bodyXs.copyWith(color: TpColors.muted, fontSize: 10),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StepRow extends StatelessWidget {
-  const _StepRow({
-    required this.number,
-    required this.text,
-    this.actionLabel,
-    this.onAction,
-  });
-
-  final String number;
-  final String text;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 20,
-            height: 20,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: TpColors.pink,
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              number,
-              style: TpText.bodyXs.copyWith(
-                fontSize: 10,
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(text, style: TpText.bodySm),
-                if (actionLabel != null && onAction != null)
-                  GestureDetector(
-                    onTap: onAction,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(
-                        actionLabel!,
-                        style: TpText.bodyXs.copyWith(
-                          color: TpColors.ink,
-                          fontWeight: FontWeight.w700,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
