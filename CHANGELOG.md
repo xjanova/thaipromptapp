@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.21] - 2026-04-21
+
+### 🎛️ Thaiapp-MANAGER — ศูนย์ควบคุมแอปฝั่งเว็บแอดมิน
+
+User request: "ทำ Thaiapp-MANAGER เป็นหน้า admin เดียวที่คุมทุกอย่างที่แอปดึงมา · persona, TTS, keys, โมเดล Gemma, banners, sliders, menus, config, releases"
+
+### Backend — admin hub ใหม่ที่ `/admin/thaiapp`
+
+**Live on prod** (gated by `auth` + `role:admin,super_admin`):
+
+| Route | จัดการอะไร |
+|---|---|
+| `/admin/thaiapp` | ภาพรวม · cards + stats |
+| `/admin/thaiapp/nong-ying` | แก้ persona + TTS config (`ai_bot_profiles[id=4]`) |
+| `/admin/thaiapp/ai-pool` | CRUD `ai_api_keys` (Gemini/Groq/Grok/Qwen/OpenRouter/DeepSeek/Typhoon) |
+| `/admin/thaiapp/ai-models` | ปุ่ม Sync Gemma .task จาก HF (E2B 2GB / E4B 3GB) |
+| `/admin/thaiapp/banners` | CRUD `app_banners` |
+| `/admin/thaiapp/sliders` | CRUD `app_sliders` |
+| `/admin/thaiapp/menus` | CRUD `app_menus` |
+| `/admin/thaiapp/config` | key-value `app_configs` (env-scoped: production vs staging) |
+| `/admin/thaiapp/releases` | ประวัติรุ่น (read-only) |
+
+### เพิ่มลิงก์ใน sidebar-v3
+
+- Pinnable-menu-group ใหม่ "📱 Thaiapp · แอป" ใส่หลัง Users/Roles group
+- 9 submenus ชี้ไปหน้า hub ทั้งหมด
+- ไอคอน `fas fa-mobile-screen`
+
+### Files (ฝั่ง backend repo `xjanova/Thaiprompt-Affiliate`, commit `a44c54aea`)
+
+- `app/Http/Controllers/Admin/ThaiappManagerController.php` (454 บรรทัด · 9 pages + 20+ CRUD methods)
+- `resources/views/admin/thaiapp/{hub,nong-ying,ai-pool,ai-models,banners,sliders,menus,config,releases,_card,_flash}.blade.php` (11 ไฟล์)
+- `routes/web.php` · +42 บรรทัด FQCN route group
+- `resources/views/components/arrow-x/sidebar-v3.blade.php` · +29 บรรทัด menu group
+
+### บทเรียนจาก v1.0.21 รอบแรก (ล่ม/กู้)
+
+- **Trap**: `use App\...\Foo as Bar;` ข้างใน `Route::group(function () {})` closure = invalid PHP · ทำเว็บ 500 ทุก route
+- **Rule**: FQCN (`\App\Http\Controllers\Admin\ThaiappManagerController::class`) ในทุก route · อย่าใช้ `use as` ใน closure
+- **Recovery**: ถ้า `routes/web.php` มี syntax error · `php artisan` boot ไม่ขึ้น · ต้องใช้ Server Maintenance workflow → `custom-command` → raw bash (`sed -i '\|MARKER|,\|END|d'`)
+- **Deploy path**: prod auto-syncs จาก `origin/claude/Main` (CI → deploy.yml → SSH → `deploy.sh claude/Main`) · edit บน prod ผ่าน tinker โดยไม่ push จะโดน `git reset --hard` ในรอบ deploy ถัดไป
+
+### App-side (Flutter) — ไม่มีการเปลี่ยนแปลง
+
+แอปยังเรียก endpoints เดิมจาก v1.0.20: `/api/v1/app/config`, `/ai/nong-ying/persona`, `/ai/nong-ying/knowledge?q=`, `/ai/chat`, `/ai/tts`, `/ai/models/{tier}`. Thaiapp-MANAGER แค่ให้แอดมินแก้ข้อมูลต้นทางผ่าน web UI แทน tinker/SQL ตรง
+
 ## [1.0.20] - 2026-04-20
 
 ### 🧠 Persona + knowledge ย้ายจากแอพ → server (admin แก้ได้ที่เดียว)
