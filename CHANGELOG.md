@@ -7,6 +7,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.23] - 2026-04-24
+
+### 🎨 Real UI for 6 scaffolded screens — Search / Categories / Checkout (4) / Seller Dashboard
+
+Continuing v1.0.22 design handoff. 6 screens now have production UI matching the design reference pixel-close:
+
+### `/buyer/search` — Search page
+- Mango top bar + white search field + back button
+- "ยอดนิยม" hot searches (pink fill for top 2 trending · white fill for rest)
+- "ค้นล่าสุด" recent queries with history icon + tap-to-refill
+- Autofocus TextField with search-intent keyboard
+
+### `/buyer/categories` — Categories grid
+- 2-column grid · 8 color-coded category tiles
+- Emoji icon + Thai name + shop count
+- Mango tile auto-switches to ink text for contrast; all other colors use white
+- Back button in header
+
+### `/buyer/checkout/address` — Step 1/4 Address picker
+- 4-step progress indicator (numbered/check-mark, pink when active/done)
+- 3 saved address cards with emoji-colored tile + ETA pill + selected-state outline
+- "+ เพิ่มที่อยู่ใหม่" ghost button
+- Bottom-sheet CTA "ถัดไป · เลือกวิธีจ่าย →"
+
+### `/buyer/checkout/payment` — Step 2/4 Payment method
+- 5 payment methods (PromptPay QR, Wallet, Credit card, TrueMoney, COD) with accent tiles + "แนะนำ/เร็วสุด" tags
+- Selected-state 3px pink outline
+- Coupon input row
+- Order summary (subtotal · shipping · discount · total pink)
+- Bottom CTA "จ่าย ฿170 →" routes to QR (PromptPay) or Paid (other methods)
+
+### `/buyer/checkout/qr` — Step 3/4 PromptPay QR
+- Purple-gradient QR card (white → light-purple)
+- Faux-QR `CustomPainter` rendering 14×14 module grid + pink ฿ center badge
+- ฿170.00 display + REF mono + 1-second live countdown
+- Countdown pill turns pink under 60s
+- Bottom CTA "ชำระแล้ว · ตรวจสอบ →"
+
+### `/buyer/checkout/paid` — Step 4/4 Success
+- Mint→mango gradient background
+- Check icon 110px white circle with elastic scale-in animation (600ms)
+- "PAYMENT SUCCESS" mono + "ชำระเงินสำเร็จ" display + order ref line
+- Prepare-status card with blur-backdrop background
+- Two actions: ใบเสร็จ (ghost) · ติดตามออเดอร์ → (pink)
+
+### `/seller` — Seller Dashboard (real)
+- Shop header: mango→tomato gradient, shop logo+rating, open/closed toggle
+- 2-column stats: revenue today (฿3,820, ↑18%) · pending orders (7, ⚡2 ด่วน)
+- 8-hour sales bar chart (highlight current hour in pink, rest mango gradient)
+- 4 quick actions: เพิ่มสินค้า · โปรโมชัน · แชท · ถอน
+- New orders list with status chips + pricing + tap-to-detail
+
+### Files
+- `~ lib/features/home/search_page.dart` (stub → full UI, ~260 lines)
+- `~ lib/features/home/categories_page.dart` (stub → full UI, ~150 lines)
+- `~ lib/features/checkout/checkout_pages.dart` (stub → 5 real pages, ~700 lines)
+- `~ lib/features/seller/seller_pages.dart` (stub → Dashboard real, rest stubs, ~500 lines)
+- `~ pubspec.yaml` 1.0.22+23 → 1.0.23+24
+
+Flutter analyze: 0 errors on new files · 1 info fixed in search_page.dart.
+
 ## [1.0.22] - 2026-04-24
 
 ### 🎨 Design handoff v2 scaffold — 5 roles, 40+ screens, claymorphism system
