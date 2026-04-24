@@ -7,6 +7,82 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.22] - 2026-04-24
+
+### 🎨 Design handoff v2 scaffold — 5 roles, 40+ screens, claymorphism system
+
+User request: "Thaiprompt.zip เป็น design ที่เราต้องยึดตามแบบ โปรดนำมาใช้ในแอพให้ครบ"
+
+**Source**: `design/design_handoff_thaiprompt_marketplace/` (extracted from `Thaiprompt.zip` · Apr 24) — hi-fi HTML/JSX prototype from Claude Design covering Buyer/Seller/Rider/MLM/Admin roles.
+
+### 🆕 Shared primitives
+
+- **`lib/shared/widgets/app_tab_bar.dart`** — dark floating pill bar per design spec
+  - Active tab: expanding pill with accent fill + icon + label · spring `cubic-bezier(.5, 1.4, .5, 1)` 280ms
+  - Inactive tabs: 46×46 icon-only squares at `rgba(255,255,255,.78)`
+  - Per-role `RoleTabs` presets: `buyer`, `seller`, `rider`, `mlm`
+  - `onDark` flag for dark-background roles (Rider/MLM)
+  - Badge support (pink 14px, 2px ink-color border-box separator)
+- **`lib/shared/widgets/under_construction_page.dart`** — canonical stub page for v1.0.22 scaffold
+
+### 🆕 Mode Select (`/mode`)
+
+- New `features/onboarding/mode_select_page.dart` — post-login role picker
+- 3 stacked mode cards (Buyer pink→tomato · Seller mango→tomato · Rider ink→purple)
+- Remote ad banner (dismissible, 3-dot indicator)
+- MLM quick-link
+- Persists `last_mode` to SharedPreferences
+
+### 🆕 Feature scaffolds (routes live, UI stubs)
+
+- **`features/seller/`** (NEW) · `SellerShell` + 8 pages: dashboard, orders, order detail, products, product edit, promos, reports, withdraw
+- **`features/rider/`** (NEW) · `RiderShell` (onDark) + 5 pages: dashboard, jobs, job detail, earnings, profile
+- **`features/mlm/`** (NEW) · `MlmShell` (onDark) + 4 pages: dashboard, tree, earnings, invite
+- **`features/checkout/`** (NEW) · 5-step flow: address → payment → QR → paid → receipt
+- **`features/orders/`** (NEW) · consolidated buyer orders inbox
+- **`features/review/`** (NEW) · order review page
+- **`features/notifications/`** (NEW)
+- **`features/profile/`** (NEW) · profile + address book + coupons
+- **`features/home/search_page.dart`**, **`categories_page.dart`** (NEW)
+
+### 🔀 Router overhaul
+
+- `/mode` routes to Mode Select
+- `/buyer/*` — new shell prefix for existing Home/Search/Categories/Orders/Product/Shop/Profile/etc.
+- `/seller/*` — ShellRoute with Seller tab bar
+- `/rider/*` — ShellRoute with Rider tab bar (onDark)
+- `/mlm/*` — ShellRoute with MLM tab bar (onDark)
+- Legacy routes (`/home`, `/product/:id`, `/shop/:id`) redirect to new paths — no deep-link breakage
+- Post-login redirect: `/splash` → `/mode` (was `/home`)
+- Guest-allowed list updated to include `/buyer*` paths
+
+### Next sessions (roadmap)
+
+1. Flesh out Buyer Home with new top bar + banner carousel + sections (`screens-a.jsx` reference)
+2. Seller Dashboard (revenue card + 8-bar chart + 3 today-orders)
+3. Rider Job Queue + active job map
+4. MLM Tree visualization
+5. Checkout step UIs (address form → payment method → PromptPay QR → paid confetti → receipt)
+6. Buyer Search UI (hot tags + recent)
+7. Buyer Categories grid
+8. Profile + Address Book + Coupons
+9. Review flow
+10. Notifications inbox
+
+### Files
+
+- `+ lib/shared/widgets/app_tab_bar.dart` (300+ lines)
+- `+ lib/shared/widgets/under_construction_page.dart`
+- `+ lib/features/onboarding/mode_select_page.dart` (~400 lines)
+- `+ lib/features/{seller,rider,mlm}/*_shell.dart` + `*_pages.dart`
+- `+ lib/features/{checkout,orders,review,notifications,profile}/*`
+- `+ lib/features/home/{search,categories}_page.dart`
+- `~ lib/app/router.dart` — ShellRoute restructure + 30+ new routes
+- `+ design/design_handoff_thaiprompt_marketplace/` — extracted design reference
+- `~ pubspec.yaml` 1.0.21+22 → 1.0.22+23
+
+Flutter analyze: 0 errors · 123 info-only (pre-existing style nits).
+
 ## [1.0.21] - 2026-04-21
 
 ### 🎛️ Thaiapp-MANAGER — ศูนย์ควบคุมแอปฝั่งเว็บแอดมิน

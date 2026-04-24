@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Thaiprompt · ไทยพร๊อม — Community Market v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Prompt:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<style>
+  body{font-family:'IBM Plex Sans Thai','Prompt',sans-serif}
+  .display{font-family:'Space Grotesk','Prompt',sans-serif;font-weight:900;letter-spacing:-.015em}
+  .mono{font-family:'JetBrains Mono',monospace}
+  .stage-head{padding:40px 48px 16px;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand .logo{width:54px;height:54px;border-radius:16px;background:#0E0B1F;color:#FFC94D;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk';font-weight:900;font-size:28px;border:3px solid #0E0B1F;box-shadow:4px 4px 0 #FF3E6C}
+  .brand h1{margin:0;font:900 28px/1 'Space Grotesk';letter-spacing:-.03em}
+  .brand .sub{font:600 13px 'JetBrains Mono';color:#6E6A85;letter-spacing:.15em;text-transform:uppercase;margin-top:4px}
+
+  .hero{padding:0 48px 28px;max-width:900px;font-size:14px;line-height:1.6;color:#2A2640}
+
+  .mode-nav{padding:0 48px 24px;display:flex;gap:10px;flex-wrap:wrap;position:sticky;top:0;background:linear-gradient(180deg,var(--paper) 70%,transparent);z-index:10;padding-top:12px;padding-bottom:16px}
+  .mode-nav a{text-decoration:none;padding:10px 18px;border:2.5px solid #0E0B1F;border-radius:14px;font:800 13px 'IBM Plex Sans Thai';background:#fff;color:#0E0B1F;box-shadow:3px 3px 0 #0E0B1F;transition:transform .15s}
+  .mode-nav a:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 #0E0B1F}
+  .mode-nav a.buyer{background:#FFC94D}
+  .mode-nav a.seller{background:#FF7A3A;color:#fff}
+  .mode-nav a.rider{background:#2A1F3D;color:#fff}
+  .mode-nav a.mlm{background:#6B4BFF;color:#fff}
+
+  .mode-section{padding:60px 0 40px;border-top:3px dashed rgba(14,11,31,.25)}
+  .mode-section.first{border-top:none;padding-top:20px}
+  .mode-banner{padding:0 48px 28px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+  .mode-banner .chip-mode{padding:10px 18px;border-radius:16px;border:3px solid #0E0B1F;font:900 16px 'Space Grotesk';box-shadow:5px 5px 0 #0E0B1F;letter-spacing:-.01em}
+  .mode-banner h2{margin:0;font:900 44px/1 'Space Grotesk';letter-spacing:-.03em}
+  .mode-banner .desc{flex-basis:100%;color:#2A2640;font-size:14px;line-height:1.55;max-width:780px;margin-top:8px}
+
+  .row{display:flex;gap:36px;padding:0 48px 16px;overflow-x:auto;scroll-snap-type:x mandatory;align-items:flex-start}
+  .row > *{scroll-snap-align:start}
+  .row-label{font:700 11px 'JetBrains Mono';color:#6E6A85;letter-spacing:.2em;text-transform:uppercase;padding:0 48px 10px;display:flex;align-items:center;gap:12px}
+  .row-label::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--dot,#FF3E6C)}
+  .row-label::after{content:'';flex:1;height:1px;background:rgba(14,11,31,.15)}
+
+  /* tweak panel */
+  .tweaks{position:fixed;right:20px;bottom:20px;z-index:50;width:280px;padding:14px;border-radius:18px;background:#FFF8EE;border:2.5px solid #0E0B1F;box-shadow:6px 6px 0 #0E0B1F;font-family:'IBM Plex Sans Thai',sans-serif;display:none}
+  .tweaks.on{display:block}
+  .tweaks h3{margin:0 0 10px;font:900 14px 'Space Grotesk';display:flex;align-items:center;gap:8px}
+  .tweaks h3::before{content:'◆';color:#FF3E6C}
+  .tweaks .k{font:600 10px 'JetBrains Mono';color:#6E6A85;letter-spacing:.12em;text-transform:uppercase;margin-top:10px;margin-bottom:4px}
+  .tweaks .opt{display:flex;gap:6px;flex-wrap:wrap}
+  .tweaks .opt button{border:2px solid #0E0B1F;background:#fff;padding:5px 10px;border-radius:999px;font:600 11px 'IBM Plex Sans Thai';cursor:pointer}
+  .tweaks .opt button.on{background:#0E0B1F;color:#FFC94D}
+
+  body.theme-vibrant{ --pink:#FF3E6C; --mint:#00D4B4; --mango:#FFC94D; }
+  body.theme-warm{ --pink:#C7502D; --mint:#2F7A5F; --mango:#E6A23B; }
+  body.theme-neon{ --pink:#FF2E9A; --mint:#00E0C7; --mango:#FFD400; }
+
+  .callout{padding:14px 18px;border:2.5px solid #0E0B1F;border-radius:16px;box-shadow:4px 4px 0 #0E0B1F;background:#fff;margin:0 48px 24px;max-width:780px;display:flex;align-items:center;gap:14px;font-size:13px}
+  .callout .dot{width:36px;height:36px;border-radius:12px;background:#FFC94D;border:2px solid #0E0B1F;display:flex;align-items:center;justify-content:center;font-weight:900;flex-shrink:0}
+</style>
+</head>
+<body class="theme-vibrant">
+
+<div class="stage grain" id="root">
+  <div class="stage-head">
+    <div class="brand">
+      <div class="logo">T</div>
+      <div>
+        <h1>Thaiprompt <span style="background:#FF3E6C;color:#fff;padding:2px 8px;border-radius:8px;font-size:14px;vertical-align:middle;box-shadow:2px 2px 0 #0E0B1F">v2.0</span></h1>
+        <div class="sub">ไทยพร๊อม · Community Marketplace — Full Flow</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span class="chip" style="background:#FFC94D">🇹🇭 Android</span>
+      <span class="chip" style="background:#00D4B4">4 modes · 40+ screens</span>
+      <span class="chip" style="background:#FF3E6C;color:#fff">Tappable flow</span>
+    </div>
+  </div>
+
+  <div class="hero">
+    แอปสุดเต็มระบบ 4 โหมด → <b>ผู้ซื้อ · ร้านค้า · ไรเดอร์ · MLM</b>
+    โฟนทุกตัวเป็น <b>interactive prototype</b> กดปุ่มนำทางภายในได้จริง ·
+    Mode Select ข้างล่างจะลิงก์ไปหน้าแรกของแต่ละโหมด · 
+    เลื่อนแนวนอนในแต่ละ row เพื่อดูหน้าย่อย
+  </div>
+
+  <div class="mode-nav">
+    <a href="#select" class="buyer">① Mode Select</a>
+    <a href="#buyer" class="buyer">② Buyer · ผู้ซื้อ</a>
+    <a href="#seller" class="seller">③ Seller · ร้านค้า</a>
+    <a href="#rider" class="rider">④ Rider · ไรเดอร์</a>
+    <a href="#mlm" class="mlm">⑤ MLM · เครือข่าย</a>
+    <a href="#admin" class="mlm" style="background:#0E0B1F;color:#FFC94D">+ Admin</a>
+  </div>
+
+  <!-- ======================= MODE SELECT ======================= -->
+  <div class="mode-section first" id="select">
+    <div class="mode-banner">
+      <div class="chip-mode" style="background:#FFF8EE">① Mode Select</div>
+      <h2>เลือกโหมดการใช้งาน</h2>
+      <div class="desc">หลัง login ผู้ใช้เห็นหน้าเลือกโหมด · ด้านบนเป็นแบนเนอร์โฆษณาคุมจาก thaiprompt.online แบบ remote · กดโหมดไหนก็เข้าไปใช้งานส่วนนั้น</div>
+    </div>
+    <div class="row-label" style="--dot:#FFC94D">Onboarding</div>
+    <div class="row" id="row-select"></div>
+  </div>
+
+  <!-- ======================= BUYER ======================= -->
+  <div class="mode-section" id="buyer">
+    <div class="mode-banner">
+      <div class="chip-mode" style="background:#FFC94D">② Buyer Mode</div>
+      <h2>โหมดผู้ซื้อ · สั่งของ</h2>
+      <div class="desc">Full flow ตั้งแต่ <b>Home → Search → Categories → Product → Shop → Cart → Tracking → Chat → Orders → Wallet → Affiliate → Profile</b> · Navigation ภายในใช้ได้จริง · Wallet จ่าย PromptPay + สะสม Coins · Affiliate แชร์สินค้าได้คอมมิชชั่น</div>
+    </div>
+
+    <div class="row-label" style="--dot:#FF3E6C">Home · Search · Browse</div>
+    <div class="row" id="row-buyer-1"></div>
+    <div class="row-label" style="--dot:#FFC94D" style="margin-top:12px">Product · Shop · Cart</div>
+    <div class="row" id="row-buyer-2"></div>
+    <div class="row-label" style="--dot:#00D4B4">Checkout flow: Address → Payment → QR → Paid → Receipt</div>
+    <div class="row" id="row-buyer-3"></div>
+    <div class="row-label" style="--dot:#6B4BFF" style="margin-top:12px">Post-order: Tracking · Chat · Orders · Review · Notifications</div>
+    <div class="row" id="row-buyer-3b"></div>
+    <div class="row-label" style="--dot:#6B4BFF">Wallet · Affiliate · Profile · Settings</div>
+    <div class="row" id="row-buyer-4"></div>
+  </div>
+
+  <!-- ======================= SELLER ======================= -->
+  <div class="mode-section" id="seller">
+    <div class="mode-banner">
+      <div class="chip-mode" style="background:#FF7A3A;color:#fff">③ Seller Mode</div>
+      <h2>โหมดร้านค้า · หลังบ้าน</h2>
+      <div class="desc">ครบ workflow ผู้ขาย · <b>Dashboard → Orders → Order Detail → Products → Edit Product → Promotions → Reports → Withdraw → Chat → Settings</b> · Realtime orders + กราฟยอดขาย + จัดการสต็อกและโปรโมชั่น</div>
+    </div>
+    <div class="row-label" style="--dot:#FF7A3A">Seller App · Full flow</div>
+    <div class="row" id="row-seller"></div>
+  </div>
+
+  <!-- ======================= RIDER ======================= -->
+  <div class="mode-section" id="rider">
+    <div class="mode-banner">
+      <div class="chip-mode" style="background:#2A1F3D;color:#FFC94D">④ Rider Mode</div>
+      <h2>โหมดไรเดอร์ · รับงานส่ง</h2>
+      <div class="desc">Dark UI เข้าใจสภาพแสงกลางคืน · <b>Dashboard + Map → Jobs Queue → Job Detail → Pickup → Delivery Confirm → Earnings → Profile</b> · OTP ยืนยันลูกค้า + ถ่ายรูปของ + รายได้รายสัปดาห์</div>
+    </div>
+    <div class="row-label" style="--dot:#6B4BFF">Rider App · Dark Mode</div>
+    <div class="row" id="row-rider"></div>
+  </div>
+
+  <!-- ======================= MLM ======================= -->
+  <div class="mode-section" id="mlm">
+    <div class="mode-banner">
+      <div class="chip-mode" style="background:#6B4BFF;color:#fff">⑤ MLM Network</div>
+      <h2>ระบบเครือข่าย · MLM</h2>
+      <div class="desc"><b>Dashboard → Team Tree → Earnings → Invite+QR → Leaderboard → Training → Rank Journey → Withdraw</b> · ระบบ 3 ชั้น (Level 1/2/3) พร้อม rank progression: SEED → BRONZE → SILVER → GOLD → DIAMOND → LEGEND</div>
+    </div>
+    <div class="row-label" style="--dot:#FFC94D">MLM App · Full flow</div>
+    <div class="row" id="row-mlm"></div>
+  </div>
+
+  <div class="mode-section" id="admin">
+    <div class="mode-banner">
+      <div class="chip-mode" style="background:#0E0B1F;color:#FFC94D">+ Admin Panel</div>
+      <h2>Admin · คุมแบนเนอร์ Remote</h2>
+      <div class="desc">หน้าบ้านที่ <b>thaiprompt.online</b> ควบคุมแบนเนอร์โฆษณาในแอปแบบ realtime · แสดง stats, กำหนดเป้าหมาย (Buyer/Seller/Rider/MLM) · รวมหน้าเสริมของ Seller & Rider</div>
+    </div>
+    <div class="row-label" style="--dot:#FFC94D">Admin · Seller Extra · Rider Extra</div>
+    <div class="row" id="row-admin"></div>
+  </div>
+
+  <div class="callout" style="margin-top:40px">
+    <div class="dot">i</div>
+    <div>
+      <b>Interactive:</b> ทุก Phone เป็น prototype ที่ tap ได้จริง · แต่ละโหมดมี navigation ภายในของตัวเอง · Mode Select (Phone แรก) ลิงก์ไปยังหน้าแรกของแต่ละโหมดด้วย anchor scroll
+    </div>
+  </div>
+</div>
+
+<!-- Tweaks panel -->
+<div class="tweaks" id="tweaks">
+  <h3>Tweaks</h3>
+  <div class="k">Color theme</div>
+  <div class="opt" data-key="theme">
+    <button data-v="vibrant" class="on">Vibrant Pop</button>
+    <button data-v="warm">Warm Thai</button>
+    <button data-v="neon">Neon</button>
+  </div>
+  <div class="k">Language</div>
+  <div class="opt" data-key="lang">
+    <button data-v="th" class="on">ไทย</button>
+    <button data-v="en">EN</button>
+    <button data-v="both">ไทย+EN</button>
+  </div>
+  <div style="font:500 11px 'JetBrains Mono';color:#6E6A85;margin-top:10px">เลื่อนแนวนอนในแต่ละ row →</div>
+</div>
+
+<!-- React stack -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="blobs.jsx"></script>
+<script type="text/babel" src="phone.jsx"></script>
+<script type="text/babel" src="screens-a.jsx"></script>
+<script type="text/babel" src="screens-b.jsx"></script>
+<script type="text/babel" src="screens-c.jsx"></script>
+<script type="text/babel" src="buyer-app.jsx"></script>
+<script type="text/babel" src="seller-app.jsx"></script>
+<script type="text/babel" src="rider-app.jsx"></script>
+<script type="text/babel" src="mlm-app.jsx"></script>
+<script type="text/babel" src="extra-screens.jsx"></script>
+
+<script type="text/babel">
+const TWEAK_DEFAULS = /*EDITMODE-BEGIN*/{
+  "theme": "vibrant",
+  "lang": "both"
+}/*EDITMODE-END*/;
+
+// Onboarding with mode links
+function OnboardingLinked(){
+  // wraps Onboarding but makes mode cards scroll to respective section
+  React.useEffect(()=>{
+    const t = setTimeout(()=>{
+      const cards = document.querySelectorAll('#row-select .chunk');
+      const targets = ['#buyer','#seller','#rider'];
+      cards.forEach((el,i)=>{
+        if(targets[i]){
+          el.style.cursor='pointer';
+          el.onclick = ()=>{ document.querySelector(targets[i]).scrollIntoView({behavior:'smooth'}); };
+        }
+      });
+      // also link the MLM quick link
+      document.querySelectorAll('#row-select .chunk').forEach(el=>{
+        const t = el.querySelector('b');
+        if(t && t.textContent.includes('MLM')){
+          el.style.cursor='pointer';
+          el.onclick = ()=>{ document.querySelector('#mlm').scrollIntoView({behavior:'smooth'}); };
+        }
+      });
+    }, 200);
+    return ()=>clearTimeout(t);
+  },[]);
+  return <Onboarding/>;
+}
+
+// ===== Render each mode =====
+ReactDOM.createRoot(document.getElementById('row-select')).render(
+  <Phone label="Mode Select · เลือกโหมด"><OnboardingLinked/></Phone>
+);
+
+// Buyer — split into 4 rows, multiple screens each (all using BuyerApp state is too coupled, so spread as separate phone instances each starting at different screen)
+function BuyerAt({start}){
+  const [screen,setScreen] = React.useState(start);
+  React.useEffect(()=>setScreen(start),[start]);
+  // reuse BuyerApp but with initial screen
+  return <BuyerAppAt initial={start}/>;
+}
+
+function BuyerAppAt({initial}){
+  const [screen, setScreen] = React.useState(initial);
+  const go = (s)=>setScreen(s);
+  const V = {home:Home,product:Product,shop:Shop,cart:Cart,tracking:Tracking,chat:Chat,wallet:Wallet,affiliate:Affiliate,profile:Profile,search:BuyerSearch,categories:BuyerCategories,orders:BuyerOrders,address:BuyerAddress,coupons:BuyerCoupons,noti:BuyerNoti,checkout:CkAddress,ckAddress:CkAddress,ckPayment:CkPayment,ckQR:CkQR,ckReceipt:CkReceipt,paid:BuyerPaid,review:BuyerReview}[screen] || Home;
+  const hideTab = ['product','shop','cart','tracking','chat','search','address','coupons','noti','categories','orders','checkout','ckAddress','ckPayment','ckQR','ckReceipt','paid','review'].includes(screen);
+  return (
+    <div style={{display:'flex',flexDirection:'column',minHeight:'100%'}}>
+      <div style={{flex:1,minHeight:0}}><V go={go}/></div>
+      {!hideTab && <BuyerTab screen={screen} go={go}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('row-buyer-1')).render(
+  <>
+    <Phone label="01 · Home · หน้าแรก"><BuyerAppAt initial="home"/></Phone>
+    <Phone label="02 · Search · ค้นหา"><BuyerAppAt initial="search"/></Phone>
+    <Phone label="03 · Categories · หมวดสินค้า"><BuyerAppAt initial="categories"/></Phone>
+  </>
+);
+ReactDOM.createRoot(document.getElementById('row-buyer-2')).render(
+  <>
+    <Phone label="04 · Product · สินค้า"><BuyerAppAt initial="product"/></Phone>
+    <Phone label="05 · Shop · ร้านค้า"><BuyerAppAt initial="shop"/></Phone>
+    <Phone label="06 · Cart · ตะกร้า"><BuyerAppAt initial="cart"/></Phone>
+  </>
+);
+ReactDOM.createRoot(document.getElementById('row-buyer-3')).render(
+  <>
+    <Phone label="07 · Checkout · เลือกที่อยู่"><BuyerAppAt initial="ckAddress"/></Phone>
+    <Phone label="08 · Checkout · วิธีจ่าย"><BuyerAppAt initial="ckPayment"/></Phone>
+    <Phone label="09 · PromptPay QR"><BuyerAppAt initial="ckQR"/></Phone>
+    <Phone label="10 · Paid · สำเร็จ"><BuyerAppAt initial="paid"/></Phone>
+    <Phone label="11 · Receipt · ใบเสร็จ"><BuyerAppAt initial="ckReceipt"/></Phone>
+  </>
+);
+ReactDOM.createRoot(document.getElementById('row-buyer-3b')).render(
+  <>
+    <Phone label="12 · Tracking · ติดตาม"><BuyerAppAt initial="tracking"/></Phone>
+    <Phone label="13 · Chat · แชทกับร้าน"><BuyerAppAt initial="chat"/></Phone>
+    <Phone label="14 · Orders · ประวัติ"><BuyerAppAt initial="orders"/></Phone>
+    <Phone label="15 · Review · รีวิว"><BuyerAppAt initial="review"/></Phone>
+    <Phone label="16 · Notifications"><BuyerAppAt initial="noti"/></Phone>
+  </>
+);
+ReactDOM.createRoot(document.getElementById('row-buyer-4')).render(
+  <>
+    <Phone label="11 · Wallet"><BuyerAppAt initial="wallet"/></Phone>
+    <Phone label="12 · Affiliate"><BuyerAppAt initial="affiliate"/></Phone>
+    <Phone label="13 · Profile · โปรไฟล์"><BuyerAppAt initial="profile"/></Phone>
+    <Phone label="14 · Address · ที่อยู่"><BuyerAppAt initial="address"/></Phone>
+    <Phone label="15 · Coupons · คูปอง"><BuyerAppAt initial="coupons"/></Phone>
+  </>
+);
+
+// Seller — single app, tap bottom nav to navigate
+ReactDOM.createRoot(document.getElementById('row-seller')).render(
+  <>
+    <Phone label="Seller · Dashboard"><SellerApp initial="dash"/></Phone>
+    <Phone label="Seller · ออเดอร์"><SellerApp initial="orders"/></Phone>
+    <Phone label="Seller · Order Detail"><SellerApp initial="orderDetail"/></Phone>
+    <Phone label="Seller · สินค้า"><SellerApp initial="products"/></Phone>
+    <Phone label="Seller · โปรโมชั่น"><SellerApp initial="promos"/></Phone>
+    <Phone label="Seller · รายงาน"><SellerApp initial="reports"/></Phone>
+    <Phone label="Seller · ถอนเงิน"><SellerApp initial="withdraw"/></Phone>
+  </>
+);
+
+// Rider
+ReactDOM.createRoot(document.getElementById('row-rider')).render(
+  <>
+    <Phone label="Rider · Dashboard+Map"><RiderApp initial="dash"/></Phone>
+    <Phone label="Rider · Jobs Queue"><RiderApp initial="jobs"/></Phone>
+    <Phone label="Rider · Job Detail"><RiderApp initial="jobDetail"/></Phone>
+    <Phone label="Rider · Pickup"><RiderApp initial="pickup"/></Phone>
+    <Phone label="Rider · Deliver"><RiderApp initial="deliver"/></Phone>
+    <Phone label="Rider · Earnings"><RiderApp initial="earnings"/></Phone>
+    <Phone label="Rider · Profile"><RiderApp initial="profile"/></Phone>
+  </>
+);
+
+// MLM
+ReactDOM.createRoot(document.getElementById('row-mlm')).render(
+  <>
+    <Phone label="MLM · Dashboard"><MLMApp initial="dash"/></Phone>
+    <Phone label="MLM · Team Tree"><MLMApp initial="tree"/></Phone>
+    <Phone label="MLM · Earnings"><MLMApp initial="earnings"/></Phone>
+    <Phone label="MLM · Invite+QR"><MLMApp initial="invite"/></Phone>
+    <Phone label="MLM · Leaderboard"><MLMApp initial="leaderboard"/></Phone>
+    <Phone label="MLM · Training"><MLMApp initial="training"/></Phone>
+    <Phone label="MLM · Rank Journey"><MLMApp initial="rank"/></Phone>
+    <Phone label="MLM · Withdraw"><MLMApp initial="withdraw"/></Phone>
+  </>
+);
+
+// Admin + extras
+ReactDOM.createRoot(document.getElementById('row-admin')).render(
+  <>
+    <Phone label="Admin · Banner Remote"><AdminBanner/></Phone>
+    <Phone label="Seller · Edit Product"><SellerEditProduct/></Phone>
+    <Phone label="Seller · Promo Builder"><SellerPromoBuilder/></Phone>
+    <Phone label="Rider · Shift จองกะ"><RiderShift/></Phone>
+    <Phone label="Rider · SOS ฉุกเฉิน"><RiderSOS/></Phone>
+  </>
+);
+
+// labels for commenting
+setTimeout(()=>{
+  document.querySelectorAll('[id^=row-] > *').forEach((el,i)=>{
+    const existingLabel = el.getAttribute('data-screen-label');
+    if(!existingLabel){
+      const labelEl = el.querySelector('[style*="JetBrains"]');
+      if(labelEl) el.setAttribute('data-screen-label', labelEl.textContent.trim());
+    }
+  });
+},500);
+
+// ===== Edit mode =====
+let editOn = false;
+const tweaks = document.getElementById('tweaks');
+window.addEventListener('message',(e)=>{
+  if (!e.data) return;
+  if (e.data.type==='__activate_edit_mode'){ editOn=true; tweaks.classList.add('on'); }
+  if (e.data.type==='__deactivate_edit_mode'){ editOn=false; tweaks.classList.remove('on'); }
+});
+window.parent.postMessage({type:'__edit_mode_available'}, '*');
+
+function applyTweaks(s){
+  document.body.classList.remove('theme-vibrant','theme-warm','theme-neon');
+  document.body.classList.add('theme-'+s.theme);
+}
+tweaks.querySelectorAll('.opt').forEach(g=>{
+  const key = g.dataset.key;
+  g.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      g.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      const v = b.dataset.v;
+      const edits = {}; edits[key]=v;
+      applyTweaks({...TWEAK_DEFAULS, ...edits, [key]:v});
+      window.parent.postMessage({type:'__edit_mode_set_keys',edits},'*');
+    });
+  });
+});
+applyTweaks(TWEAK_DEFAULS);
+</script>
+</body>
+</html>

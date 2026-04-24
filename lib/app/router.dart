@@ -8,16 +8,30 @@ import '../features/auth/login_page.dart';
 import '../features/auth/register_page.dart';
 import '../features/cart/cart_page.dart';
 import '../features/chat/chat_page.dart';
+import '../features/checkout/checkout_pages.dart';
 import '../features/fresh_market/listing_detail_page.dart';
 import '../features/fresh_market/listings_page.dart';
 import '../features/fresh_market/my_orders_page.dart';
 import '../features/fresh_market/seller_page.dart';
 import '../features/fresh_market/taladsod_home_page.dart';
+import '../features/home/categories_page.dart';
 import '../features/home/home_page.dart';
+import '../features/home/search_page.dart';
+import '../features/mlm/mlm_pages.dart';
+import '../features/mlm/mlm_shell.dart';
 import '../features/nong_ying/install_model_page.dart';
 import '../features/nong_ying/nong_ying_fab.dart';
+import '../features/notifications/notifications_page.dart';
+import '../features/onboarding/mode_select_page.dart';
 import '../features/onboarding/onboarding_page.dart';
+import '../features/orders/orders_pages.dart';
 import '../features/product/product_page.dart';
+import '../features/profile/profile_pages.dart';
+import '../features/review/review_page.dart';
+import '../features/rider/rider_pages.dart';
+import '../features/rider/rider_shell.dart';
+import '../features/seller/seller_pages.dart';
+import '../features/seller/seller_shell.dart';
 import '../features/settings/settings_page.dart';
 import '../features/shop/shop_page.dart';
 import '../features/splash/splash_gate.dart';
@@ -45,8 +59,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       final splashDone = ref.read(splashGateProvider);
       final here = state.matchedLocation;
 
-      // Cold-start: keep user on /splash until the animated intro finishes,
-      // even if auth resolves first. Splash flips the gate when its anim ends.
       if (!splashDone && here == '/splash') return null;
 
       if (auth is AuthUnknown) {
@@ -59,34 +71,28 @@ final routerProvider = Provider<GoRouter>((ref) {
         '/register',
       }.contains(here);
 
-      // ───────── Guest mode ────────────────────────────────────────────────
-      // Browse-without-login: anyone can wander the home grid, ตลาดสด,
-      // products, shops, settings (on-device AI/voice install, About),
-      // นง'หญิง FAB, and tracking pages (Tracking is read-only by token).
-      // The auth-gate on truly user-scoped routes (cart checkout, wallet,
-      // affiliate dashboard, my orders) is enforced here — tapping them
-      // redirects to /login. The login/register screens give a "ข้ามไปก่อน"
-      // escape hatch back to /home so the user never dead-ends.
-      //
-      // First launch (cold start, no token): splash → /onboarding so the
-      // user sees the "ตลาดนัดอยู่ในมือ" intro card. "เริ่มใช้เลย" on
-      // that card lands them on /home as a guest; "เข้าสู่ระบบ" goes to
-      // /login. Subsequent launches (warm start, still unauthenticated)
-      // also pass through splash → /onboarding so the brand intro is the
-      // stable entry point rather than dumping straight into home.
+      // Guest mode: browse-without-login for home, taladsod, products,
+      // shops, settings, and tracking (read-only by token). Everything
+      // else (cart, wallet, affiliate, checkout, mode-specific shells)
+      // requires auth.
       const guestAllowedExact = {
         '/home',
+        '/buyer',
+        '/buyer/search',
+        '/buyer/categories',
         '/taladsod',
         '/taladsod/listings',
-        '/settings',        // on-device AI model install · About · no PII
-        '/nong-ying',       // local Gemma chat · prompts only, no account
+        '/settings',
+        '/nong-ying',
         '/nong-ying/install',
       };
       final isGuestAllowedPrefix = here.startsWith('/product/')
           || here.startsWith('/shop/')
+          || here.startsWith('/buyer/product/')
+          || here.startsWith('/buyer/shop/')
           || here.startsWith('/taladsod/listings/')
           || here.startsWith('/taladsod/sellers/')
-          || here.startsWith('/orders/') && here.endsWith('/tracking');
+          || (here.startsWith('/orders/') && here.endsWith('/tracking'));
 
       if (auth is AuthUnauthenticated) {
         if (here == '/splash') return '/onboarding';
@@ -94,11 +100,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         if (guestAllowedExact.contains(here) || isGuestAllowedPrefix) {
           return null;
         }
-        // Anything else (cart, wallet, affiliate, my orders, ...) needs auth.
         return '/login';
       }
 
-      if (here == '/splash' || isAuthRoute) return '/home';
+      if (here == '/splash' || isAuthRoute) return '/mode';
       return null;
     },
     routes: [
@@ -107,19 +112,96 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/login', builder: (_, __) => const LoginPage()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterPage()),
 
-      GoRoute(path: '/home', builder: (_, __) => const HomePage()),
+      // Mode Select — post-login role picker (v1.0.22)
+      GoRoute(path: '/mode', builder: (_, __) => const ModeSelectPage()),
+
+      // ═══════════════════════════════════════════════════════════════
+      // BUYER — existing home lives at /home for back-compat; new
+      // design uses /buyer + nested routes. Home redirects to /buyer.
+      // ═══════════════════════════════════════════════════════════════
+      GoRoute(path: '/home', redirect: (_, __) => '/buyer'),
+      GoRoute(path: '/buyer', builder: (_, __) => const HomePage()),
+      GoRoute(path: '/buyer/search', builder: (_, __) => const SearchPage()),
+      GoRoute(path: '/buyer/categories', builder: (_, __) => const CategoriesPage()),
+      GoRoute(
+        path: '/buyer/product/:id',
+        builder: (_, state) =>
+            ProductPage(productId: int.parse(state.pathParameters['id']!)),
+      ),
+      GoRoute(
+        path: '/buyer/shop/:id',
+        builder: (_, state) =>
+            ShopPage(shopId: int.parse(state.pathParameters['id']!)),
+      ),
+      GoRoute(path: '/buyer/cart', redirect: (_, __) => '/cart'),
+      GoRoute(path: '/buyer/orders', builder: (_, __) => const OrdersPage()),
+      GoRoute(
+        path: '/buyer/tracking/:id',
+        builder: (_, state) =>
+            TrackingPage(orderId: int.parse(state.pathParameters['id']!)),
+      ),
+      GoRoute(
+        path: '/buyer/chat/:id',
+        builder: (_, state) {
+          final shop = state.uri.queryParameters['shop'];
+          return ChatPage(
+            orderId: int.parse(state.pathParameters['id']!),
+            shopName: shop,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/buyer/review/:id',
+        builder: (_, state) =>
+            ReviewPage(orderId: int.parse(state.pathParameters['id']!)),
+      ),
+      GoRoute(path: '/buyer/notifications', builder: (_, __) => const NotificationsPage()),
+      GoRoute(path: '/buyer/profile', builder: (_, __) => const ProfilePage()),
+      GoRoute(path: '/buyer/addresses', builder: (_, __) => const AddressBookPage()),
+      GoRoute(path: '/buyer/coupons', builder: (_, __) => const CouponsPage()),
+      GoRoute(path: '/buyer/wallet', redirect: (_, __) => '/wallet'),
+      GoRoute(path: '/buyer/affiliate', redirect: (_, __) => '/affiliate'),
+
+      // Checkout flow (/buyer/checkout/*)
+      GoRoute(
+        path: '/buyer/checkout/address',
+        builder: (_, __) => const CheckoutAddressPage(),
+      ),
+      GoRoute(
+        path: '/buyer/checkout/payment',
+        builder: (_, __) => const CheckoutPaymentPage(),
+      ),
+      GoRoute(
+        path: '/buyer/checkout/qr',
+        builder: (_, __) => const CheckoutQrPage(),
+      ),
+      GoRoute(
+        path: '/buyer/checkout/paid',
+        builder: (_, __) => const CheckoutPaidPage(),
+      ),
+      GoRoute(
+        path: '/buyer/checkout/receipt/:orderId',
+        builder: (_, state) => CheckoutReceiptPage(
+          orderId: int.parse(state.pathParameters['orderId']!),
+        ),
+      ),
+
+      // Legacy (pre-v1.0.22) routes — kept as redirects so deep-links don't break
       GoRoute(path: '/cart', builder: (_, __) => const CartPage()),
       GoRoute(
         path: '/product/:id',
-        builder: (_, state) => ProductPage(productId: int.parse(state.pathParameters['id']!)),
+        builder: (_, state) =>
+            ProductPage(productId: int.parse(state.pathParameters['id']!)),
       ),
       GoRoute(
         path: '/shop/:id',
-        builder: (_, state) => ShopPage(shopId: int.parse(state.pathParameters['id']!)),
+        builder: (_, state) =>
+            ShopPage(shopId: int.parse(state.pathParameters['id']!)),
       ),
       GoRoute(
         path: '/orders/:id/tracking',
-        builder: (_, state) => TrackingPage(orderId: int.parse(state.pathParameters['id']!)),
+        builder: (_, state) =>
+            TrackingPage(orderId: int.parse(state.pathParameters['id']!)),
       ),
       GoRoute(
         path: '/orders/:id/chat',
@@ -132,7 +214,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
 
-      // Money
+      // Wallet (flat — no shell)
       GoRoute(path: '/wallet', builder: (_, __) => const WalletPage()),
       GoRoute(path: '/wallet/topup', builder: (_, __) => const TopupPage()),
       GoRoute(path: '/wallet/transfer', builder: (_, __) => const TransferPage()),
@@ -172,6 +254,73 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Settings
       GoRoute(path: '/settings', builder: (_, __) => const SettingsPage()),
+
+      // ═══════════════════════════════════════════════════════════════
+      // SELLER shell (/seller/*)
+      // ═══════════════════════════════════════════════════════════════
+      ShellRoute(
+        builder: (context, state, child) => SellerShell(
+          location: state.matchedLocation,
+          child: child,
+        ),
+        routes: [
+          GoRoute(path: '/seller', builder: (_, __) => const SellerDashboardPage()),
+          GoRoute(path: '/seller/orders', builder: (_, __) => const SellerOrdersPage()),
+          GoRoute(path: '/seller/products', builder: (_, __) => const SellerProductsPage()),
+          GoRoute(path: '/seller/promos', builder: (_, __) => const SellerPromosPage()),
+          GoRoute(path: '/seller/reports', builder: (_, __) => const SellerReportsPage()),
+          GoRoute(path: '/seller/withdraw', builder: (_, __) => const SellerWithdrawPage()),
+        ],
+      ),
+      // Leaf seller routes without shell (so detail pages take full screen)
+      GoRoute(
+        path: '/seller/orders/:id',
+        builder: (_, __) => const SellerOrderDetailPage(orderId: 0),
+      ),
+      GoRoute(
+        path: '/seller/products/:id',
+        builder: (_, state) => SellerProductEditPage(
+          productId: int.tryParse(state.pathParameters['id'] ?? '0') ?? 0,
+        ),
+      ),
+
+      // ═══════════════════════════════════════════════════════════════
+      // RIDER shell (/rider/*)
+      // ═══════════════════════════════════════════════════════════════
+      ShellRoute(
+        builder: (context, state, child) => RiderShell(
+          location: state.matchedLocation,
+          child: child,
+        ),
+        routes: [
+          GoRoute(path: '/rider', builder: (_, __) => const RiderDashboardPage()),
+          GoRoute(path: '/rider/jobs', builder: (_, __) => const RiderJobsPage()),
+          GoRoute(path: '/rider/earnings', builder: (_, __) => const RiderEarningsPage()),
+          GoRoute(path: '/rider/profile', builder: (_, __) => const RiderProfilePage()),
+        ],
+      ),
+      GoRoute(
+        path: '/rider/jobs/:id',
+        builder: (_, state) => RiderJobDetailPage(
+          jobId: int.tryParse(state.pathParameters['id'] ?? '0') ?? 0,
+        ),
+      ),
+
+      // ═══════════════════════════════════════════════════════════════
+      // MLM shell (/mlm/*)
+      // ═══════════════════════════════════════════════════════════════
+      ShellRoute(
+        builder: (context, state, child) => MlmShell(
+          location: state.matchedLocation,
+          child: child,
+        ),
+        routes: [
+          GoRoute(path: '/mlm', builder: (_, __) => const MlmDashboardPage()),
+          GoRoute(path: '/mlm/tree', builder: (_, __) => const MlmTreePage()),
+          GoRoute(path: '/mlm/earnings', builder: (_, __) => const MlmEarningsPage()),
+          GoRoute(path: '/mlm/invite', builder: (_, __) => const MlmInvitePage()),
+        ],
+      ),
     ],
     errorBuilder: (context, state) => Scaffold(
       backgroundColor: const Color(0xFFFFF8EC),
@@ -208,7 +357,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 22, vertical: 12),
                   ),
-                  onPressed: () => context.go('/home'),
+                  onPressed: () => context.go('/buyer'),
                   child: const Text('กลับหน้าแรก'),
                 ),
               ],

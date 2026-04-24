@@ -54,3 +54,7 @@ key.properties
 /android/app/upload-keystore.jks
 /upload-keystore.base64.txt
 /keystore-info.txt
+
+# Design upload artifacts — extract to design/ and commit that instead
+/Thaiprompt.zip
+/Thaiprompt-handoff.zip
