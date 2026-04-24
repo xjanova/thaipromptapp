@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/tokens.dart';
 import '../../shared/widgets/clay_card.dart';
 import '../../shared/widgets/puffy_button.dart';
-import '../../shared/widgets/under_construction_page.dart';
 
 /// Shared header used across checkout steps. Back button + TH title +
 /// mono `STEP x/4` uppercase subtitle. Matches `BuyerHeader` in
@@ -1024,7 +1023,7 @@ class CheckoutPaidPage extends StatelessWidget {
 }
 
 // ───────────────────────────────────────────────────────────────────────
-// Receipt — kept as stub; needs real order lookup from backend.
+// Receipt — real · rainbow-bar header + items + totals + barcode
 // ───────────────────────────────────────────────────────────────────────
 
 class CheckoutReceiptPage extends StatelessWidget {
@@ -1032,9 +1031,217 @@ class CheckoutReceiptPage extends StatelessWidget {
   final int orderId;
 
   @override
-  Widget build(BuildContext context) => UnderConstructionPage(
-        title: 'ใบเสร็จ #$orderId',
-        subtitle: 'รายการสินค้า · วิธีชำระ · ดาวน์โหลด PDF · share',
-        icon: Icons.receipt_long_rounded,
-      );
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: TpColors.paper,
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.only(bottom: 30),
+          children: [
+            _CkHeader(
+              title: 'ใบเสร็จ',
+              sub: 'RECEIPT · #TP-$orderId',
+              onBack: () => context.go('/buyer/orders'),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(TpRadii.chunk), boxShadow: TpShadows.clay),
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      height: 6,
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft, end: Alignment.centerRight,
+                          colors: [TpColors.pink, TpColors.mango, TpColors.mint, TpColors.purple],
+                        ),
+                      ),
+                    ),
+                    Container(
+                      color: Colors.white,
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      width: 40, height: 40,
+                                      decoration: BoxDecoration(color: TpColors.deepInk, borderRadius: BorderRadius.circular(12), boxShadow: TpShadows.claySm),
+                                      alignment: Alignment.center,
+                                      child: const Text('T', style: TextStyle(fontFamily: 'Space Grotesk', fontWeight: FontWeight.w900, fontSize: 20, color: TpColors.mango)),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    const Text('Thaiprompt', style: TextStyle(fontFamily: 'Space Grotesk', fontSize: 16, fontWeight: FontWeight.w900, color: TpColors.ink)),
+                                    const Text('ใบเสร็จรับเงิน/ใบกำกับภาษี (อย่างย่อ)', style: TextStyle(fontFamily: 'JetBrains Mono', fontSize: 9, color: TpColors.muted)),
+                                  ],
+                                ),
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  const Text('REF', style: TextStyle(fontFamily: 'JetBrains Mono', fontSize: 9, color: TpColors.muted)),
+                                  Text('#TP-$orderId', style: const TextStyle(fontFamily: 'Space Grotesk', fontSize: 14, fontWeight: FontWeight.w900, color: TpColors.ink)),
+                                  const SizedBox(height: 4),
+                                  const Text('24 เม.ย. 26 · 09:42', style: TextStyle(fontFamily: 'JetBrains Mono', fontSize: 9, color: TpColors.muted)),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: const BoxDecoration(
+                              border: Border(
+                                top: BorderSide(color: Color(0x26000000), width: 1.5, style: BorderStyle.solid),
+                                bottom: BorderSide(color: Color(0x26000000), width: 1.5, style: BorderStyle.solid),
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                for (final item in const [
+                                  ('ข้าวซอยไก่ (กลาง)', 1, 85),
+                                  ('+ ไข่ต้ม', 1, 10),
+                                  ('น้ำอัญชัน', 2, 90),
+                                ])
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 3),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text.rich(
+                                            TextSpan(
+                                              children: [
+                                                TextSpan(text: item.$1),
+                                                TextSpan(text: ' ×${item.$2}', style: const TextStyle(fontFamily: 'JetBrains Mono', color: TpColors.muted)),
+                                              ],
+                                            ),
+                                            style: const TextStyle(fontFamily: 'IBM Plex Sans Thai', fontSize: 12, color: TpColors.ink),
+                                          ),
+                                        ),
+                                        Text('฿${item.$3}', style: const TextStyle(fontFamily: 'JetBrains Mono', fontSize: 12, fontWeight: FontWeight.w700, color: TpColors.ink)),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          for (final r in const [('ยอดรวม', '฿185'), ('ค่าส่ง', '฿20'), ('ส่วนลด', '-฿35')])
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 2),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(r.$1, style: const TextStyle(fontFamily: 'IBM Plex Sans Thai', fontSize: 12, color: TpColors.muted)),
+                                  Text(r.$2, style: const TextStyle(fontFamily: 'JetBrains Mono', fontSize: 12, fontWeight: FontWeight.w700, color: TpColors.ink)),
+                                ],
+                              ),
+                            ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(color: TpColors.deepInk, borderRadius: BorderRadius.circular(14), boxShadow: TpShadows.claySm),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                Text('ยอดชำระ', style: TextStyle(fontFamily: 'IBM Plex Sans Thai', fontWeight: FontWeight.w700, fontSize: 12, color: TpColors.mango)),
+                                Text('฿170', style: TextStyle(fontFamily: 'Space Grotesk', fontSize: 22, fontWeight: FontWeight.w900, color: TpColors.mango)),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(color: const Color(0xFFDFFAF3), borderRadius: BorderRadius.circular(12)),
+                                  child: const Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('จ่ายด้วย', style: TextStyle(fontFamily: 'JetBrains Mono', fontSize: 9, color: TpColors.muted)),
+                                      Text('PromptPay', style: TextStyle(fontFamily: 'IBM Plex Sans Thai', fontSize: 12, fontWeight: FontWeight.w800, color: TpColors.ink)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(color: const Color(0xFFFFE3EB), borderRadius: BorderRadius.circular(12)),
+                                  child: const Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('ร้าน', style: TextStyle(fontFamily: 'JetBrains Mono', fontSize: 9, color: TpColors.muted)),
+                                      Text('ครัวยายปราณี', style: TextStyle(fontFamily: 'IBM Plex Sans Thai', fontSize: 12, fontWeight: FontWeight.w800, color: TpColors.ink)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          SizedBox(
+                            height: 40,
+                            child: CustomPaint(painter: _BarcodePainter()),
+                          ),
+                          const SizedBox(height: 4),
+                          const Center(
+                            child: Text('TP 8821 9F4A 2640 5891', style: TextStyle(fontFamily: 'JetBrains Mono', fontSize: 9, color: TpColors.muted)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Expanded(child: PuffyButton(label: '📥 ดาวน์โหลด', variant: PuffyVariant.ghost, fullWidth: true, onPressed: () {})),
+                  const SizedBox(width: 8),
+                  Expanded(child: PuffyButton(label: '✉ ส่งอีเมล', variant: PuffyVariant.ghost, fullWidth: true, onPressed: () {})),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BarcodePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    const bars = 60;
+    final totalWidth = size.width;
+    var x = 0.0;
+    for (var i = 0; i < bars; i++) {
+      final width = i % 3 == 0 ? 3.0 : 1.0;
+      final opaque = i * 17 % 3 == 0 ? 0.3 : 1.0;
+      final paint = Paint()..color = TpColors.deepInk.withValues(alpha: opaque);
+      canvas.drawRect(Rect.fromLTWH(x, 0, width, size.height), paint);
+      x += width + 1;
+      if (x > totalWidth) break;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _BarcodePainter old) => false;
 }

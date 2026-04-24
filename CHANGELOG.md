@@ -7,6 +7,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.24] - 2026-04-24
+
+### 🎨 All 23 remaining scaffold screens now have real UI — design handoff complete
+
+User request: "นำเข้าให้ครบ" — every stub from v1.0.22 scaffold is now a real screen matching the Claude Design reference (`design/design_handoff_thaiprompt_marketplace/*.jsx`).
+
+### Rider (5 screens · onDark shell · mango accent)
+
+| Screen | What shipped |
+|---|---|
+| `/rider` | Mini-map (dashed route + 3 waypoints via CustomPainter), 3 mini-stats, active job card with stop timeline + navigate/deliver actions, upcoming-jobs list |
+| `/rider/jobs` | 3 filter chips + 5 job rows (distance badge, route, ETA, pay, tag) |
+| `/rider/jobs/:id` | Mango income card with tip breakdown, pickup + dropoff cards with phone/nav action buttons, accept/reject row |
+| `/rider/earnings` | Pink→mango week-income hero with 7-bar chart, 4 mini metrics, recent trips history |
+| `/rider/profile` | Purple→pink gradient rider card, 4 achievement badges, 6-item menu |
+
+### MLM (4 screens · onDark shell)
+
+| Screen | What shipped |
+|---|---|
+| `/mlm` | Greeting header, rainbow rank card (mango→pink→purple) with progress bar, 2 stat boxes, 4 quick-action tiles, team activity list |
+| `/mlm/tree` | 3-state filter chips, "YOU" center node, 3 downlines with L3 sub-expansion |
+| `/mlm/earnings` | Purple→pink total hero + withdraw/history actions, 4 level breakdown boxes, commission log |
+| `/mlm/invite` | Mango→tomato invite-code card with `CustomPainter` faux QR, 4 share buttons (LINE/FB/IG/Copy), 3 reward tiers |
+
+### Seller (7 screens)
+
+| Screen | What shipped |
+|---|---|
+| `/seller/orders` | 4 tab pills (horizontal scroll) + 5 order rows with customer + status chip |
+| `/seller/orders/:id` | Pink "new order" header with accept/reject actions, customer card, items breakdown with platform commission, payment-method card |
+| `/seller/products` | Search row + add button, 2-col product grid with image, stock indicator, enable pill, out-of-stock overlay |
+| `/seller/products/:id` | 3 image slots + "หลัก" tag, name/desc/price/stock fields, 4-category picker chips, enable-switch card, delete+save bottom actions |
+| `/seller/promos` | Pink→purple summary hero, 3 promo rows with toggle, "create new" ink CTA |
+| `/seller/reports` | 2 stat cards (this-month revenue + orders), 6-month line chart via `CustomPainter` with gradient fill, top-selling products list |
+| `/seller/withdraw` | Mint→purple balance card, bank card, amount card with 4 quick-pick chips, big withdraw CTA, recent-withdrawals history |
+
+### Buyer (7 screens)
+
+| Screen | What shipped |
+|---|---|
+| `/buyer/orders` | 4 tab pills + 4 order cards with emoji icon, status pill, price |
+| `/buyer/profile` | Purple→pink→mango gradient top, profile card (overlap pattern with 3D avatar), 3-stat row, 7-item menu routing to orders/seller/rider/mlm/addresses/coupons/help |
+| `/buyer/addresses` | 3 address cards with `ค่าเริ่มต้น` pill, add-address CTA |
+| `/buyer/coupons` | 3 side-by-side coupons (colored left + details right with "ใช้เลย" button) |
+| `/buyer/notifications` | 4 notification rows with unread dot indicator for the top 2 |
+| `/buyer/review/:id` | Order header card, star rating (1-5) with label, 6 taggable chips, comment textarea, submit CTA |
+| `/buyer/checkout/receipt/:id` | Rainbow-bar receipt with brand logo + REF, dashed-border item section, totals, black-bg ยอดชำระ highlight, 2 payment/shop meta cards, `CustomPainter` barcode + download/email actions |
+
+### Cleanup
+- Removed unused imports in `mlm_pages.dart` + `checkout_pages.dart`
+- Added `Orders`, `Profile`, `Coupons`, `Addresses` properly wired in existing router
+
+### Files
+- `~ lib/features/rider/rider_pages.dart` (~900 lines, 5 pages + CustomPainter route map)
+- `~ lib/features/mlm/mlm_pages.dart` (~900 lines, 4 pages + invite QR painter)
+- `~ lib/features/seller/seller_pages.dart` (~1100 lines, 8 pages + 6-month line chart painter)
+- `~ lib/features/orders/orders_pages.dart` (full rewrite)
+- `~ lib/features/profile/profile_pages.dart` (full rewrite, 3 pages)
+- `~ lib/features/notifications/notifications_page.dart` (full rewrite)
+- `~ lib/features/review/review_page.dart` (full rewrite with star + tag + textarea)
+- `~ lib/features/checkout/checkout_pages.dart` (receipt page real + barcode painter)
+- `~ pubspec.yaml` 1.0.23+24 → 1.0.24+25
+
+Flutter analyze: 0 errors · 3 info/warning (1 unused-import fixed, 2 deprecated `activeColor` on Switch — still works, awaiting Flutter SDK migration).
+
+**Design handoff v2 coverage: 100%.** Every screen listed in `design_handoff_thaiprompt_marketplace/README.md` is now implemented. Further work focuses on wiring real backend data (product lists from `/v1/products`, orders from `/v1/orders`, etc.) to replace the static stubs used this session.
+
 ## [1.0.23] - 2026-04-24
 
 ### 🎨 Real UI for 6 scaffolded screens — Search / Categories / Checkout (4) / Seller Dashboard
